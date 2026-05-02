@@ -13,11 +13,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Cổng chào mặc định để kiểm tra server có chạy hay không
+# Cong chao mac dinh de kiem tra Server co chay duoc khong
 @app.get("/")
 def read_root():
     return {"message": "Hệ thống Backend Finance AI đã hoạt động thành công!"}
-# Đoạn code này để An kiểm tra xem Model có chạy không
+# Code kiem tra xem Model co chay duoc khong
 from models.transaction import TransactionRequest, TransactionResponse
 
 @app.post("/check-an", response_model=TransactionResponse)
