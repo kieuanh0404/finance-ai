@@ -6,7 +6,7 @@ def get_connection():
     conn.row_factory = sqlite3.Row  # Lay du lieu dang dictionary
     return conn
 
-# 1. Tao bang transactions
+# Tao bang transactions
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
@@ -66,7 +66,7 @@ def filter_transactions(transaction_type=None, start_date=None, end_date=None):
     conn.close()
     return [dict(row) for row in rows]
 
-# Chạy khoi tao bang khi file duoc thuc thi
+# Chay khoi tao bang khi file duoc thuc thi
 if __name__ == "__main__":
     init_db()
     print("Database đã được khởi tạo thành công!")
