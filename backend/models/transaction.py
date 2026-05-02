@@ -5,7 +5,7 @@ from typing import Optional
 class TransactionRequest(BaseModel):
     type: str          # "Thu" hoac "Chi"
     amount: float      # So tien giao dich
-    category: str      # Danh muc (An uong, Di chuyen, Luong, Mua sam...)
+    category: str      # Danh muc (An uong, Di chuyen,Giai tri, Mua sam...)
     date: str          # Đinh dang YYYY-MM-DD
     note: Optional[str] = None # Ghi chu co the de trong
 
