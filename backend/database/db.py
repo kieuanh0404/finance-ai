@@ -15,7 +15,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             type TEXT NOT NULL,         -- Thu hoac Chi
             amount REAL NOT NULL,       -- So tien
-            category TEXT NOT NULL,     -- Danh mmuc (an uong,di chuyen, giai tri,...)
+            category TEXT NOT NULL,     -- Danh mmuc (an uong,di chuyen, giai tri,mua sam...)
             date TEXT NOT NULL,         -- NgNgay thang (YYYY-MM-DD)
             note TEXT                   -- Ghi chu
         )
