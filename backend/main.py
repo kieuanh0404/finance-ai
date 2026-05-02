@@ -17,3 +17,9 @@ app.add_middleware(
 @app.get("/")
 def read_root():
     return {"message": "Hệ thống Backend Finance AI đã hoạt động thành công!"}
+# Đoạn code này để An kiểm tra xem Model có chạy không
+from models.transaction import TransactionRequest, TransactionResponse
+
+@app.post("/check-an", response_model=TransactionResponse)
+def check_an(data: TransactionRequest):
+    return data
