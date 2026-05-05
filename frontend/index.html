@@ -4,14 +4,184 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance AI - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f6f9;}
-        h1 { color: #2c3e50; }
-        .message { color: #e74c3c; font-weight: bold; font-size: 20px;}
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b0f1a; color: #f1f5f9; height: 100vh; overflow: hidden; }
+        .glass { background: rgba(22, 27, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .icon-btn { transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
+        .icon-btn:hover { background: rgba(59, 130, 246, 0.1); transform: scale(1.05); }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
-<body>
-    <h1>Hệ thống Quản lý Tài chính AI</h1>
-    <p class="message">Hello cưng, anh em tạo nhánh và bắt đầu code giao diện ở đây nhé!</p>
+<body class="p-3 flex flex-col gap-3">
+
+    <!-- HEADER -->
+    <header class="flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-extrabold text-white leading-none">FINANCE <span class="text-blue-500">AI</span></h1>
+            <div class="glass px-4 py-2 rounded-xl flex items-center gap-4 border border-white/10 relative">
+                <button class="text-slate-500 hover:text-white text-sm font-bold">❮</button>
+                <div class="text-center min-w-[90px]">
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest leading-none">Tháng 05</p>
+                    <p class="text-sm font-bold text-white">2026</p>
+                    <input type="month" class="absolute inset-0 opacity-0 cursor-pointer">
+                </div>
+                <button class="text-slate-500 hover:text-white text-sm font-bold">❯</button>
+            </div>
+            <p class="text-xs text-slate-400 italic">Chào mừng trở lại, <span class="text-blue-400 font-bold">MP!</span></p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 glass rounded-xl flex items-center justify-center text-xl shadow-lg shadow-black/20 text-white cursor-pointer hover:bg-slate-800 transition-all">🔔</div>
+            <div class="h-10 w-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center font-bold text-sm shadow-lg shadow-blue-500/20 text-white">M</div>
+        </div>
+    </header>
+
+    <!-- TOP STATS -->
+    <div class="grid grid-cols-3 gap-3 shrink-0">
+        <div class="glass p-4 rounded-2xl border-b-2 border-blue-500">
+            <p class="text-[10px] text-slate-500 uppercase font-bold">Số dư tổng</p>
+            <h2 class="text-xl font-bold">102.500.000 đ</h2>
+        </div>
+        
+        <div class="relative">
+            <div onclick="toggleIncomePopup(true)" class="glass p-4 rounded-2xl border-b-2 border-emerald-500 hover:bg-emerald-500/5 cursor-pointer">
+                <p class="text-[10px] text-emerald-500 uppercase font-bold italic">Thu nhập (+)</p>
+                <h2 class="text-xl font-bold text-emerald-400">25.000.000 đ</h2>
+            </div>
+            
+            <!-- Popup Thu nhập -->
+            <div id="income-popup" class="hidden absolute top-full mt-2 left-0 w-80 glass z-[100] p-5 rounded-3xl border border-emerald-500/30 shadow-2xl">
+                <div class="flex justify-between items-center mb-5">
+                    <span id="income-modal-title" class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Thêm thu nhập</span>
+                    <button onclick="toggleIncomePopup(false)" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+                </div>
+                
+                <div id="income-grid" class="grid grid-cols-4 gap-3 mb-4">
+                    <div onclick="selectType('income', 'Lương', '💼')" class="icon-btn flex flex-col items-center p-2 rounded-xl text-2xl"><span>💼</span><span class="text-[9px] mt-1">Lương</span></div>
+                    <div onclick="selectType('income', 'Làm thêm', '🕒')" class="icon-btn flex flex-col items-center p-2 rounded-xl text-2xl"><span>🕒</span><span class="text-[9px] mt-1 text-center font-bold">Làm thêm</span></div>
+                    <div onclick="selectType('income', 'Thưởng', '🧧')" class="icon-btn flex flex-col items-center p-2 rounded-xl text-2xl"><span>🧧</span><span class="text-[9px] mt-1 font-bold">Thưởng</span></div>
+                    <div onclick="showAddCustomInIncome()" class="icon-btn flex flex-col items-center p-2 rounded-xl border-dashed border-emerald-500/30 text-emerald-500 text-2xl">＋</div>
+                </div>
+
+                <div id="income-add-custom-ui" class="hidden flex flex-col items-center space-y-4 mb-4 animate-fade-in">
+                    <div class="text-4xl p-4 bg-emerald-500/10 rounded-full text-emerald-400 mb-1">💰</div>
+                    <input id="new-income-name" type="text" placeholder="Tên danh mục mới..." class="w-full bg-slate-900 border border-white/10 p-3 rounded-xl text-xs outline-none text-white text-center">
+                    <div class="flex gap-2 w-full">
+                        <button onclick="confirmAddIncome()" class="flex-1 bg-emerald-600 py-3 rounded-lg text-xs font-bold uppercase text-white">Thêm</button>
+                        <button onclick="resetIncomeUI()" class="flex-1 bg-slate-800 py-3 rounded-lg text-xs font-bold uppercase text-slate-400">Hủy</button>
+                    </div>
+                </div>
+
+                <div id="income-input-box" class="hidden space-y-4 animate-fade-in border-t border-white/5 pt-4">
+                    <div class="flex items-center gap-3">
+                        <span id="selected-income-icon" class="text-3xl"></span>
+                        <input id="income-amt" type="number" placeholder="Nhập số tiền..." class="w-full bg-slate-900 border border-white/10 p-3 rounded-xl text-sm outline-none font-bold text-white text-center">
+                    </div>
+                    <button onclick="toggleIncomePopup(false)" class="w-full bg-emerald-600 py-3 rounded-xl text-xs font-bold text-white uppercase">Lưu thu nhập</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass p-4 rounded-2xl border-b-2 border-rose-500 text-left hover:bg-rose-500/10 transition-all group cursor-pointer">
+            <p class="text-[10px] text-slate-500 uppercase font-bold italic text-slate-400">Chi tiêu tháng</p>
+            <h2 class="text-xl font-bold text-rose-400">8.420.000 đ</h2>
+        </div>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div class="flex-1 grid grid-cols-12 gap-3 min-h-0 overflow-hidden">
+        <div class="col-span-8 flex flex-col gap-3 min-h-0">
+            <div class="flex gap-3 h-[52%] shrink-0">
+                <div class="glass w-[40%] p-5 rounded-[2rem] flex flex-col">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">Biểu đồ chi tiêu</h3>
+                    <div class="flex-1 min-h-0 relative"><canvas id="staticPieChart"></canvas></div>
+                </div>
+
+                <div class="glass w-[60%] p-5 rounded-[2rem] flex flex-col relative overflow-hidden">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">Thêm chi tiêu</h3>
+                    <div id="expense-grid" class="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-5 gap-3 content-start pr-1"></div>
+
+                    <div id="quick-input-box" class="hidden absolute inset-x-5 bottom-5 z-50 p-4 bg-slate-900 border border-blue-500/50 rounded-2xl flex items-center gap-4 shadow-2xl backdrop-blur-md">
+                        <button onclick="closeQuickInput()" class="text-slate-400 hover:text-white font-bold text-base px-1">✕</button>
+                        <span id="active-icon" class="text-3xl"></span>
+                        <div class="flex items-center gap-2 border-r border-white/10 pr-3">
+                            <span class="text-lg">📅</span><span class="text-[10px] text-blue-400 font-bold uppercase">Hôm nay</span>
+                        </div>
+                        <input id="amt-input" type="number" placeholder="Tiền..." class="w-24 bg-transparent text-base font-bold border-b border-white/20 outline-none">
+                        <input id="note-input" type="text" placeholder="Ghi chú..." class="flex-1 bg-transparent text-xs border-b border-white/20 outline-none">
+                        <button onclick="closeQuickInput()" class="bg-blue-600 text-xs font-bold px-5 py-2.5 rounded-xl text-white uppercase">Lưu</button>
+                    </div>
+
+                    <div id="custom-icon-popup" class="hidden absolute inset-0 glass z-[60] flex flex-col items-center justify-center p-8 rounded-[2rem] animate-fade-in text-center">
+                        <button onclick="hideAddCustom()" class="absolute top-6 right-8 text-slate-400 font-bold text-xl">✕</button>
+                        <div class="text-5xl p-5 bg-blue-500/10 rounded-full text-blue-400 mb-5 shadow-lg">💸</div>
+                        <h4 class="text-xs font-bold uppercase text-blue-400 mb-5 tracking-widest italic">Thêm danh mục chi tiêu</h4>
+                        <div class="space-y-4 w-full max-w-[220px]">
+                            <input id="new-icon-name" type="text" placeholder="Tên hạng mục..." class="w-full bg-slate-950/50 border border-white/10 p-3.5 rounded-xl text-xs text-center outline-none text-white">
+                            <div class="flex gap-3">
+                                <button onclick="addNewCategory()" class="flex-1 bg-blue-600 py-3 rounded-xl text-xs font-bold uppercase">Xác nhận</button>
+                                <button onclick="hideAddCustom()" class="flex-1 bg-slate-800 py-3 rounded-xl text-xs font-bold uppercase text-slate-400">Hủy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass rounded-[2rem] p-5 flex-1 min-h-0 flex flex-col">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">Lịch sử giao dịch</h3>
+                <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                    <div class="flex justify-between items-center p-3.5 bg-white/5 rounded-xl text-xs">
+                        <div class="flex items-center gap-4 text-base"><span>🍜</span><div><p class="font-bold leading-none text-slate-200">Trà sữa</p><p class="text-[9px] text-slate-500 italic mt-1">Ăn uống • Hôm nay</p></div></div>
+                        <p class="font-bold text-lg text-rose-400">-50.000 đ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-4 glass rounded-[2.5rem] flex flex-col min-h-0 overflow-hidden border border-blue-500/10 shadow-lg shadow-blue-500/5">
+            <div class="p-4 border-b border-white/5 bg-blue-500/5 flex items-center gap-3">
+                <span class="text-base">🤖</span><span class="text-xs font-bold uppercase tracking-widest text-slate-300">AI Financial Agent</span>
+            </div>
+            <div class="flex-1 p-5 overflow-y-auto custom-scrollbar text-xs italic leading-relaxed text-slate-400">"Chào bạn! Quản lý chi tiêu hiện tại rất khoa học. Hãy duy trì nhé!"</div>
+            <div class="p-4 bg-slate-900/50 mt-auto flex relative">
+                <input type="text" placeholder="Hỏi AI..." class="w-full bg-slate-950 border border-white/10 rounded-xl py-3 px-5 text-xs outline-none text-slate-200 focus:border-blue-500">
+                <button class="absolute right-5 top-5 h-6 w-6 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let expenseIcons = [{n: 'Ăn uống', i: '🍜'}, {n: 'Đi lại', i: '🛵'}, {n: 'Mua sắm', i: '🛍️'}, {n: 'Giải trí', i: '🎮'}, {n: 'Giáo dục', i: '📚'}, {n: 'Điện thoại', i: '📱'}, {n: 'Sức khỏe', i: '🏥'}, {n: 'Làm đẹp', i: '💄'}, {n: 'Thú cưng', i: '🐶'}, {n: 'Quà tặng', i: '🎁'}];
+
+        function renderGrids() {
+            const grid = document.getElementById('expense-grid');
+            grid.innerHTML = expenseIcons.map(item => `<div onclick="selectType('expense', '${item.n}', '${item.i}')" class="icon-btn flex flex-col items-center p-2 rounded-xl"><span class="text-3xl text-center">${item.i}</span><span class="text-[9px] mt-1 font-semibold text-center">${item.n}</span></div>`).join('') + `<div onclick="showAddCustom()" class="icon-btn flex flex-col items-center p-2 rounded-xl border-dashed border-slate-700 text-blue-500 font-bold text-3xl">＋</div>`;
+        }
+
+        function selectType(gridType, name, icon) {
+            if(gridType === 'expense') { document.getElementById('quick-input-box').classList.remove('hidden'); document.getElementById('active-icon').innerText = icon; }
+            else { document.getElementById('income-grid').classList.add('hidden'); document.getElementById('income-input-box').classList.remove('hidden'); document.getElementById('selected-income-icon').innerText = icon; document.getElementById('income-modal-title').innerText = "Nhập tiền: " + name; }
+        }
+
+        function showAddCustom() { document.getElementById('custom-icon-popup').classList.remove('hidden'); }
+        function hideAddCustom() { document.getElementById('custom-icon-popup').classList.add('hidden'); }
+        function showAddCustomInIncome() { document.getElementById('income-grid').classList.add('hidden'); document.getElementById('income-add-custom-ui').classList.remove('hidden'); document.getElementById('income-modal-title').innerText = "Tạo danh mục mới"; }
+        function resetIncomeUI() { document.getElementById('income-grid').classList.remove('hidden'); document.getElementById('income-add-custom-ui').classList.add('hidden'); document.getElementById('income-input-box').classList.add('hidden'); document.getElementById('income-modal-title').innerText = "Thêm thu nhập"; }
+        function confirmAddIncome() { const name = document.getElementById('new-income-name').value; if(name) { alert("Đã thêm: " + name); resetIncomeUI(); } }
+        function addNewCategory() { const name = document.getElementById('new-icon-name').value; if(name) { expenseIcons.push({n: name, i: '💸'}); renderGrids(); hideAddCustom(); } }
+        function closeQuickInput() { document.getElementById('quick-input-box').classList.add('hidden'); }
+        function toggleIncomePopup(show) { document.getElementById('income-popup').classList.toggle('hidden', !show); if(show) resetIncomeUI(); }
+
+        renderGrids();
+        setTimeout(() => {
+            const ctx = document.getElementById('staticPieChart').getContext('2d');
+            new Chart(ctx, { type: 'doughnut', data: { labels: ['Ăn uống', 'Đi lại', 'Mua sắm', 'Học tập', 'Khác'], datasets: [{ data: [40, 20, 25, 10, 5], backgroundColor: ['#3b82f6', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6'], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: true, position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10, padding: 10 } } } } });
+        }, 300);
+    </script>
 </body>
 </html>
