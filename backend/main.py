@@ -6,10 +6,11 @@ from routes.transaction import router as transaction_router
 from routes.dashboard import router as dashboard_router  # <--- THIỆN ĐÃ MỞ KHÓA Ở ĐÂY[cite: 1]
 
 from models.transaction import TransactionRequest, TransactionResponse
+from routes.api_tro_ly_chat import router as chat_router
 
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(title="Finance AI API")
-
+app.include_router(chat_router)
 # 2. Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,

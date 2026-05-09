@@ -130,6 +130,11 @@ class FinanceAgent:
                 "status": "success"
             }
         }
+# Thêm vào cuối file services/bo_nao_ai.py
+def phan_tich_y_dinh(cau_noi):
+    agent = FinanceAgent()
+    # Gọi hàm parse mà Thiện đã viết cực khôn ở trên
+    return agent.parse(cau_noi)
 
 # --- TEST DRIVE ---
 if __name__ == "__main__":
