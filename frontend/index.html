@@ -6,6 +6,7 @@
     <title>Finance AI - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b0f1a; color: #f1f5f9; height: 100vh; overflow: hidden; }
@@ -250,7 +251,13 @@
             });
         }
 
-        function updateDashboard() {
+        async function updateDashboard() {
+            try {
+                const res = await axios.get("http://127.0.0.1:8000/api/transactions");
+                transactions = res.data; // Gán dữ liệu từ DB vào biến transactions của cậu
+            } catch (e) {
+                console.log("Chưa lấy được data từ DB, đang dùng tạm data cũ");
+            }
             let income = 0, expense = 0, totalBal = 0;
             const categoryData = {};
             const curM = globalViewDate.getMonth();
@@ -532,11 +539,36 @@
             document.getElementById('ai-chat-area').innerText = ratio > 80 ? `"Cảnh báo: Bạn đã tiêu hết ${ratio}% thu nhập. Cắt giảm nhé!"` : `"Tuyệt vời! Bạn chỉ mới tiêu ${ratio}% thu nhập. Rất khoa học!"`;
         }
 
-        function handleAIChat() {
+        async function handleAIChat() {
             const input = document.getElementById('ai-input');
-            if (!input.value) return;
-            document.getElementById('ai-chat-area').innerHTML += `<div class="mt-2 text-blue-400 text-right">Bạn: ${input.value}</div>`;
+            const chatArea = document.getElementById('ai-chat-area');
+            const message = input.value;
+            if (!message) return;
+
+            // 1. Hiện tin nhắn của Thiện lên màn hình
+            chatArea.innerHTML += `<div class="mt-2 text-blue-400 text-right">Bạn: ${message}</div>`;
             input.value = '';
+            chatArea.scrollTop = chatArea.scrollHeight; // Cuộn xuống dưới
+
+            try {
+                // 2. Gửi tin nhắn sang Backend Python (Cổng 8000)
+                const res = await axios.post("http://127.0.0.1:8000/api/chatbot/chat", { 
+                    tin_nhan: message 
+                });
+
+                // 3. Hiển thị câu trả lời của AI
+                const aiReply = res.data.phan_hoi || "Đã xử lý xong giao dịch của bạn!";
+                chatArea.innerHTML += `<div class="mt-2 text-emerald-400 italic">🤖: ${aiReply}</div>`;        
+                // 4. Nếu AI bóc tách thành công, gọi hàm cập nhật lại Dashboard (Hàm có sẵn của cậu)
+                updateDashboard(); 
+                
+            } catch (error) {
+                console.error(error);
+                chatArea.innerHTML += `<div class="mt-2 text-rose-500 text-[10px]">⚠️ Lỗi: Không kết nối được Backend!</div>`;
+            }
+            
+            // Tự động cuộn xuống tin nhắn mới nhất
+            chatArea.scrollTop = chatArea.scrollHeight;
         }
 
         window.onload = () => {
