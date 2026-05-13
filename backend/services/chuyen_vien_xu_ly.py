@@ -23,7 +23,9 @@ def xu_ly_them_moi(intent_data: dict) -> str:
                 gd["note"]
             )
             tien_format = "{:,.0f}".format(gd["amount"])
-            loai = "💸 Chi" if gd["type"] == "Chi" else "💰 Thu"
+            type_raw = gd["type"].lower()
+
+            loai = "💸 Chi" if type_raw in ["chi", "expense"] else "💰 Thu"
             ket_qua.append(
                 f"✅ {loai} {tien_format}đ — '{gd['note']}' (Danh mục: {gd['category']})"
             )
