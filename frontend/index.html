@@ -15,28 +15,10 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         .icon-btn { transition: all 0.2s; cursor: pointer; border: 1px solid transparent; position: relative; }
         .icon-btn:hover { background: rgba(59, 130, 246, 0.1); transform: scale(1.05); }
-        
-        /* Nút xóa khi hover */
-        .delete-cat { 
-            position: absolute; top: -2px; right: -2px; 
-            background: #ef4444; color: white; 
-            width: 16px; height: 16px; border-radius: 50%; 
-            display: none; align-items: center; justify-content: center; 
-            font-size: 10px; font-weight: bold; z-index: 10;
-        }
+        .delete-cat { position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; width: 16px; height: 16px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; z-index: 10; }
         .icon-btn:hover .delete-cat { display: flex; }
-
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-        .calendar-day { height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 9999px; font-size: 11px; transition: all 0.2s;flex-shrink: 0; }
-        .calendar-day:hover:not(.other-month) { background: rgba(59, 130, 246, 0.4); }
-        .calendar-day.selected { background: #3b82f6 !important; color: white; font-weight: 700; }
-        .calendar-day.today { border: 1px solid #3b82f6; color: #3b82f6; }
-        .calendar-day.other-month { color: #475569; opacity: 0.5; cursor: default; }
-
-        /* Custom Modal Style */
         .modal-overlay { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(6px); }
         .confirm-modal { transform: scale(0.9); transition: all 0.2s ease-out; }
         .modal-active .confirm-modal { transform: scale(1); }
@@ -66,7 +48,6 @@
                     <p id="header-year" class="text-sm font-bold text-white">2026</p>
                 </div>
                 <button class="text-slate-500 hover:text-white text-sm font-bold" onclick="navMonth(1)">❯</button>
-                
                 <div id="header-cal-popup" class="hidden fixed top-20 left-8 w-64 glass z-[160] p-4 rounded-2xl shadow-2xl border border-white/10">
                     <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                         <button onclick="changeCalYear(-1)" class="p-1 hover:text-blue-400 text-sm">❮</button>
@@ -89,22 +70,18 @@
             <p class="text-[10px] text-slate-500 uppercase font-bold">Số dư tổng (Tích lũy)</p>
             <h2 id="total-balance" class="text-xl font-bold text-white">0 đ</h2>
         </div>
-        
         <div class="relative">
             <div onclick="toggleIncomePopup(true)" class="glass p-4 rounded-2xl border-b-2 border-emerald-500 hover:bg-emerald-500/5 cursor-pointer">
                 <p class="text-[10px] text-emerald-500 uppercase font-bold italic">Thu nhập (+)</p>
                 <h2 id="total-income" class="text-xl font-bold text-emerald-400">0 đ</h2>
             </div>
-            
             <div id="income-popup" class="hidden absolute top-full mt-2 left-0 w-80 glass z-[100] p-5 rounded-3xl border border-emerald-500/30 shadow-2xl">
                 <div class="flex justify-between items-center mb-5">
                     <span id="income-modal-title" class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Thêm thu nhập</span>
                     <button onclick="toggleIncomePopup(false)" class="text-slate-400 hover:text-white font-bold text-lg">✕</button>
                 </div>
-                
                 <div id="income-grid" class="grid grid-cols-4 gap-3 mb-4"></div>
-
-                <div id="income-add-custom-ui" class="hidden flex flex-col items-center space-y-4 mb-4 animate-fade-in">
+                <div id="income-add-custom-ui" class="hidden flex flex-col items-center space-y-4 mb-4">
                     <div class="text-4xl p-4 bg-emerald-500/10 rounded-full text-emerald-400 mb-1">💰</div>
                     <input id="new-income-name" type="text" placeholder="Tên danh mục mới..." class="w-full bg-slate-900 border border-white/10 p-3 rounded-xl text-xs outline-none text-white text-center font-bold">
                     <div class="flex gap-2 w-full">
@@ -112,8 +89,7 @@
                         <button onclick="resetIncomeUI()" class="flex-1 bg-slate-800 py-3 rounded-lg text-xs font-bold uppercase text-slate-400">Hủy</button>
                     </div>
                 </div>
-
-                <div id="income-input-box" class="hidden space-y-4 animate-fade-in border-t border-white/5 pt-4">
+                <div id="income-input-box" class="hidden space-y-4 border-t border-white/5 pt-4">
                     <div class="flex items-center gap-3">
                         <span id="selected-income-icon" class="text-3xl"></span>
                         <input id="income-amt" type="number" placeholder="Nhập số tiền..." class="w-full bg-slate-900 border border-white/10 p-3 rounded-xl text-sm outline-none font-bold text-white text-center">
@@ -122,9 +98,8 @@
                 </div>
             </div>
         </div>
-
         <div class="glass p-4 rounded-2xl border-b-2 border-rose-500 text-left hover:bg-rose-500/10 transition-all group cursor-pointer">
-            <p class="text-[10px] text-slate-500 uppercase font-bold italic text-slate-400">Chi tiêu tháng</p>
+            <p class="text-[10px] text-slate-500 uppercase font-bold italic">Chi tiêu tháng</p>
             <h2 id="total-expense" class="text-xl font-bold text-rose-400">0 đ</h2>
         </div>
     </div>
@@ -136,21 +111,17 @@
                     <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">Biểu đồ chi tiêu</h3>
                     <div class="flex-1 min-h-0 relative"><canvas id="staticPieChart"></canvas></div>
                 </div>
-
                 <div class="glass w-[60%] p-5 rounded-[2rem] flex flex-col relative overflow-hidden">
                     <h3 class="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">Thêm chi tiêu</h3>
                     <div id="expense-grid" class="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-5 gap-3 content-start pr-1"></div>
-
                     <div id="quick-input-box" class="hidden absolute inset-x-5 bottom-5 z-50 p-4 bg-slate-900 border border-blue-500/50 rounded-2xl flex items-center gap-4 shadow-2xl backdrop-blur-md">
                         <button onclick="closeQuickInput()" class="text-slate-400 hover:text-white font-bold text-base px-1">✕</button>
                         <span id="active-icon" class="text-3xl"></span>
-                
-                        <input id="amt-input" type="number" placeholder="Tiền..." class="w-24 bg-transparent text-base font-bold border-b border-white/20 outline-none text-white font-bold">
+                        <input id="amt-input" type="number" placeholder="Tiền..." class="w-24 bg-transparent text-base font-bold border-b border-white/20 outline-none text-white">
                         <input id="note-input" type="text" placeholder="Ghi chú..." class="flex-1 bg-transparent text-xs border-b border-white/20 outline-none text-slate-300">
                         <button onclick="handleSaveTransaction()" class="bg-blue-600 text-xs font-bold px-5 py-2.5 rounded-xl text-white uppercase">Lưu</button>
                     </div>
-
-                    <div id="custom-icon-popup" class="hidden absolute inset-0 glass z-[60] flex flex-col items-center justify-center p-8 rounded-[2rem] animate-fade-in text-center">
+                    <div id="custom-icon-popup" class="hidden absolute inset-0 glass z-[60] flex flex-col items-center justify-center p-8 rounded-[2rem] text-center">
                         <button onclick="hideAddCustom()" class="absolute top-6 right-8 text-slate-400 font-bold text-xl">✕</button>
                         <div class="text-5xl p-5 bg-blue-500/10 rounded-full text-blue-400 mb-5 shadow-lg">💸</div>
                         <h4 class="text-xs font-bold uppercase text-blue-400 mb-5 tracking-widest italic">Thêm danh mục chi tiêu</h4>
@@ -164,152 +135,95 @@
                     </div>
                 </div>
             </div>
-
             <div class="glass rounded-[2rem] p-5 flex-1 min-h-0 flex flex-col">
                 <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">Lịch sử giao dịch</h3>
                 <div id="history-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2"></div>
             </div>
         </div>
-
-        <div class="col-span-4 glass rounded-[2.5rem] flex flex-col min-h-0 overflow-hidden border border-blue-500/10 shadow-lg shadow-blue-500/5">
+        <div class="col-span-4 glass rounded-[2.5rem] flex flex-col min-h-0 overflow-hidden border border-blue-500/10 shadow-lg shadow-blue-500/5 relative">
             <div class="p-4 border-b border-white/5 bg-blue-500/5 flex items-center gap-3">
                 <span class="text-base">🤖</span><span class="text-xs font-bold uppercase tracking-widest text-slate-300">AI Financial Agent</span>
             </div>
-            <div id="ai-chat-area" class="flex-1 p-5 overflow-y-auto custom-scrollbar text-xs italic leading-relaxed text-slate-400">
-                "Chào bạn! Quản lý chi tiêu hiện tại rất khoa học. Hãy duy trì nhé!"
-            </div>
+            <div id="ai-chat-area" class="flex-1 p-5 overflow-y-auto custom-scrollbar text-xs italic leading-relaxed text-slate-400 space-y-4"></div>
             <div class="p-4 bg-slate-900/50 mt-auto flex relative">
-                <input type="text" id="ai-input" placeholder="Hỏi AI..." class="w-full bg-slate-950 border border-white/10 rounded-xl py-3 px-5 text-xs outline-none text-slate-200 focus:border-blue-500">
+                <input type="text" id="ai-input" placeholder="Hỏi AI..." class="w-full bg-slate-950 border border-white/10 rounded-xl py-3 px-5 text-xs outline-none text-slate-200 focus:border-blue-500" onkeypress="if(event.key === 'Enter') handleAIChat()">
                 <button onclick="handleAIChat()" class="absolute right-5 top-5 h-6 w-6 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">➤</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- DATA & STATE ---
         let expenseIcons = JSON.parse(localStorage.getItem('expense_icons')) || [{n: 'Ăn uống', i: '🍜'}, {n: 'Đi lại', i: '🛵'}, {n: 'Mua sắm', i: '🛍️'}, {n: 'Giải trí', i: '🎮'}, {n: 'Giáo dục', i: '📚'}, {n: 'Điện thoại', i: '📱'}, {n: 'Sức khỏe', i: '🏥'}, {n: 'Làm đẹp', i: '💄'}, {n: 'Thú cưng', i: '🐶'}, {n: 'Quà tặng', i: '🎁'}];
         let incomeIcons = JSON.parse(localStorage.getItem('income_icons')) || [{n: 'Lương', i: '💼'}, {n: 'Làm thêm', i: '🕒'}, {n: 'Thưởng', i: '🧧'}];
-        
         let transactions = JSON.parse(localStorage.getItem('finance_transactions')) || [];
-        let currentSelection = null;
-        let myChart = null;
-        let editingId = null;
+        let aiChatHistory = JSON.parse(localStorage.getItem('ai_chat_history')) || [{ role: 'ai', content: 'Chào bạn! Quản lý chi tiêu hiện tại rất khoa học. Hãy duy trì nhé!' }];
 
-        let selectedDate = new Date();
+        let currentSelection = null; let myChart = null; let editingId = null;
         let globalViewDate = new Date();
 
-        // --- CUSTOM CONFIRM LOGIC ---
         function showConfirm(onConfirm) {
-            const modal = document.getElementById('custom-confirm');
-            modal.classList.remove('hidden');
+            const modal = document.getElementById('custom-confirm'); modal.classList.remove('hidden');
             setTimeout(() => document.body.classList.add('modal-active'), 10);
-
-            const confirmBtn = document.getElementById('btn-confirm');
-            const cancelBtn = document.getElementById('btn-cancel');
-
-            const hide = () => {
-                document.body.classList.remove('modal-active');
-                setTimeout(() => modal.classList.add('hidden'), 200);
-            };
-
-            confirmBtn.onclick = () => { onConfirm(); hide(); };
-            cancelBtn.onclick = hide;
+            document.getElementById('btn-confirm').onclick = () => { onConfirm(); hide(); };
+            document.getElementById('btn-cancel').onclick = hide;
+            function hide() { document.body.classList.remove('modal-active'); setTimeout(() => modal.classList.add('hidden'), 200); }
         }
 
-        // --- RENDER FUNCTIONS ---
         function renderGrids() {
-            const expGrid = document.getElementById('expense-grid');
-            expGrid.innerHTML = expenseIcons.map((item, index) => `
+            document.getElementById('expense-grid').innerHTML = expenseIcons.map((item, index) => `
                 <div onclick="selectType('expense', '${item.n}', '${item.i}')" class="icon-btn flex flex-col items-center p-2 rounded-xl text-center">
                     <span class="delete-cat" onclick="event.stopPropagation(); deleteCategory('expense', ${index})">✕</span>
-                    <span class="text-3xl">${item.i}</span>
-                    <span class="text-[9px] mt-1 font-semibold">${item.n}</span>
+                    <span class="text-3xl">${item.i}</span><span class="text-[9px] mt-1 font-semibold">${item.n}</span>
                 </div>
             `).join('') + `<div onclick="showAddCustom()" class="icon-btn flex flex-col items-center p-2 rounded-xl border-dashed border-slate-700 text-blue-500 font-bold text-3xl">＋</div>`;
-            
-            renderIncomeGrid();
+            document.getElementById('income-grid').innerHTML = incomeIcons.map((item, index) => `
+                <div onclick="selectType('income', '${item.n}', '${item.i}')" class="icon-btn flex flex-col items-center p-2 rounded-xl text-2xl">
+                    <span class="delete-cat" onclick="event.stopPropagation(); deleteCategory('income', ${index})">✕</span>
+                    <span>${item.i}</span><span class="text-[9px] mt-1 text-center font-bold">${item.n}</span>
+                </div>
+            `).join('') + `<div onclick="showAddCustomInIncome()" class="icon-btn flex flex-col items-center p-2 rounded-xl border-dashed border-emerald-500/30 text-emerald-500 text-2xl">＋</div>`;
             localStorage.setItem('expense_icons', JSON.stringify(expenseIcons));
             localStorage.setItem('income_icons', JSON.stringify(incomeIcons));
         }
 
-        function renderIncomeGrid() {
-            const incGrid = document.getElementById('income-grid');
-            incGrid.innerHTML = incomeIcons.map((item, index) => `
-                <div onclick="selectType('income', '${item.n}', '${item.i}')" class="icon-btn flex flex-col items-center p-2 rounded-xl text-2xl">
-                    <span class="delete-cat" onclick="event.stopPropagation(); deleteCategory('income', ${index})">✕</span>
-                    <span>${item.i}</span>
-                    <span class="text-[9px] mt-1 text-center font-bold">${item.n}</span>
-                </div>
-            `).join('') + `<div onclick="showAddCustomInIncome()" class="icon-btn flex flex-col items-center p-2 rounded-xl border-dashed border-emerald-500/30 text-emerald-500 text-2xl">＋</div>`;
-        }
+        function deleteCategory(type, index) { showConfirm(() => { if(type === 'expense') expenseIcons.splice(index, 1); else incomeIcons.splice(index, 1); renderGrids(); }); }
 
-        function deleteCategory(type, index) {
-            showConfirm(() => {
-                if(type === 'expense') expenseIcons.splice(index, 1);
-                else incomeIcons.splice(index, 1);
-                renderGrids();
-            });
-        }
-
-        async function updateDashboard() {
-            try {
-                const res = await axios.get("http://127.0.0.1:8000/api/transactions");
-                transactions = res.data; // Gán dữ liệu từ DB vào biến transactions của cậu
-            } catch (e) {
-                console.log("Chưa lấy được data từ DB, đang dùng tạm data cũ");
-            }
-            let income = 0, expense = 0, totalBal = 0;
-            const categoryData = {};
-            const curM = globalViewDate.getMonth();
-            const curY = globalViewDate.getFullYear();
+        function updateDashboard() {
+            let incT = 0, expT = 0, totalBal = 0;
+            const catData = {};
+            const curM = globalViewDate.getMonth(), curY = globalViewDate.getFullYear();
 
             transactions.forEach(t => {
                 const d = new Date(t.date);
-                if (t.type === 'income') totalBal += t.amount;
-                else totalBal -= t.amount;
-
+                if (t.type === 'income') totalBal += t.amount; else totalBal -= t.amount;
                 if (d.getMonth() === curM && d.getFullYear() === curY) {
-                    if (t.type === 'income') income += t.amount;
-                    else {
-                        expense += t.amount;
-                        categoryData[t.category] = (categoryData[t.category] || 0) + t.amount;
-                    }
+                    if (t.type === 'income') incT += t.amount;
+                    else { expT += t.amount; catData[t.category] = (catData[t.category] || 0) + t.amount; }
                 }
             });
 
             document.getElementById('total-balance').innerText = totalBal.toLocaleString() + ' đ';
-            document.getElementById('total-income').innerText = income.toLocaleString() + ' đ';
-            document.getElementById('total-expense').innerText = expense.toLocaleString() + ' đ';
+            document.getElementById('total-income').innerText = incT.toLocaleString() + ' đ';
+            document.getElementById('total-expense').innerText = expT.toLocaleString() + ' đ';
 
-            renderHistory();
-            renderChart(categoryData);
+            renderHistory(); 
+            renderChart(catData);
             localStorage.setItem('finance_transactions', JSON.stringify(transactions));
-            updateAIHint(income, expense);
+            updateAIHint(incT, expT);
         }
 
         function renderHistory() {
             const container = document.getElementById('history-container');
-            const curM = globalViewDate.getMonth();
-            const curY = globalViewDate.getFullYear();
-            
-            const filtered = transactions.filter(t => {
-                const d = new Date(t.date);
-                return d.getMonth() === curM && d.getFullYear() === curY;
-            }).reverse();
-
+            const curM = globalViewDate.getMonth(), curY = globalViewDate.getFullYear();
+            const filtered = transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === curM && d.getFullYear() === curY; }).reverse();
             container.innerHTML = filtered.length ? filtered.map(t => `
-                <div class="flex justify-between items-center p-3.5 bg-white/5 rounded-xl text-xs group">
+                <div class="flex justify-between items-center p-3.5 bg-white/5 rounded-xl text-xs group mb-2">
                     <div class="flex items-center gap-4 text-base">
-                        <span>${t.icon}</span>
-                        <div>
-                            <p class="font-bold leading-none text-slate-200">${t.note || t.category}</p>
-                            <p class="text-[9px] text-slate-500 italic mt-1">${t.category} • ${t.date}</p>
-                        </div>
+                        <span>${t.icon ?? '💸'}</span>
+                        <div><p class="font-bold leading-none text-slate-200">${t.note || t.category}</p><p class="text-[9px] text-slate-500 italic mt-1">${t.category} • ${t.date}</p></div>
                     </div>
                     <div class="flex items-center gap-4">
-                        <p class="font-bold text-lg ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">
-                            ${t.type === 'income' ? '+' : '-'}${t.amount.toLocaleString()} đ
-                        </p>
+                        <p class="font-bold text-lg ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}">${t.type === 'income' ? '+' : '-'}${t.amount.toLocaleString()} đ</p>
                         <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onclick="editTransaction(${t.id})" class="p-1 hover:text-blue-400 font-bold">✎</button>
                             <button onclick="deleteTransaction(${t.id})" class="p-1 hover:text-rose-400 font-bold">✕</button>
@@ -319,263 +233,184 @@
             `).join('') : '<p class="text-center text-slate-600 mt-10 italic font-bold">TRỐNG</p>';
         }
 
-        function toggleHeaderCalendar() {
-            const pop = document.getElementById('header-cal-popup');
-            pop.classList.toggle('hidden');
-            renderHeaderMonths();
-        }
+        async function handleAIChat() {
+            const input = document.getElementById('ai-input');
+            const msg = input.value.trim();
+            if (!msg) return;
 
-        function renderHeaderMonths() {
-            document.getElementById('cal-pop-year').innerText = globalViewDate.getFullYear();
-            const container = document.getElementById('header-month-grid');
-            container.innerHTML = '';
-            const months = ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'];
-            months.forEach((m, i) => {
-                const btn = document.createElement('button');
-                btn.className = `py-2 text-[10px] rounded-lg transition-colors ${globalViewDate.getMonth() === i ? 'bg-blue-600 text-white font-bold' : 'bg-white/5 hover:bg-white/10'}`;
-                btn.innerText = m;
-                btn.onclick = () => {
-                    globalViewDate.setMonth(i);
-                    updateHeaderText();
-                    updateDashboard();
-                    document.getElementById('header-cal-popup').classList.add('hidden');
-                };
-                container.appendChild(btn);
-            });
-        }
+            // Hiển thị tin nhắn người dùng ngay lập tức
+            aiChatHistory.push({ role: 'user', content: msg });
+            renderChat(); 
+            input.value = '';
 
-        function changeCalYear(dir) {
-            globalViewDate.setFullYear(globalViewDate.getFullYear() + dir);
-            renderHeaderMonths();
-        }
+            try {
+                // 1. Gửi tin nhắn đến AI
+                const res = await axios.post("http://127.0.0.1:8000/api/chatbot/chat", { tin_nhan: msg });
+                const aiReply = res.data.phan_hoi || "Đã xong!";
+                
+                aiChatHistory.push({ role: 'ai', content: aiReply });
+                renderChat();
 
-        function navMonth(dir) {
-            globalViewDate.setMonth(globalViewDate.getMonth() + dir);
-            updateHeaderText();
-            updateDashboard();
-        }
+                // 2. FETCH LẠI TOÀN BỘ DỮ LIỆU TỪ BACKEND ĐỂ ĐỒNG BỘ GIAO DIỆN
+                const fetchRes = await axios.get("http://127.0.0.1:8000/api/transactions");
+                if (Array.isArray(fetchRes.data)) {
+                    transactions = fetchRes.data.map(t => {
+                        let type = t.type || 'expense';
+                        let icon = t.icon || '💸';
+                        
+                        // Kiểm tra từ khóa quan trọng để sửa lỗi phân loại sai (vd: lương nhưng icon ăn uống)
+                        const checkStr = (t.note || t.category || "").toLowerCase();
+                        if (checkStr.includes("lương") || checkStr.includes("thu nhập") || checkStr.includes("thưởng")) {
+                            type = 'income'; icon = '💼';
+                        }
+                        
+                        // Đảm bảo t.amount là số và định dạng ngày chuẩn cho giao diện
+                        return { 
+                            ...t, 
+                            id: t.id || Date.now() + Math.random(),
+                            amount: parseFloat(t.amount) || 0,
+                            type, 
+                            icon,
+                            date: t.date ? t.date.split('T')[0] : new Date().toISOString().split('T')[0]
+                        };
+                    });
+                }
+                
+                // 3. Cập nhật lại toàn bộ Dashboard và lưu LocalStorage
+                localStorage.setItem('ai_chat_history', JSON.stringify(aiChatHistory));
+                updateDashboard(); 
 
-        function updateHeaderText() {
-            document.getElementById('header-month').innerText = "Tháng " + String(globalViewDate.getMonth() + 1).padStart(2, '0');
-            document.getElementById('header-year').innerText = globalViewDate.getFullYear();
-        }
-
-        function handleSaveTransaction() {
-            const amountInput = currentSelection.type === 'expense' ? document.getElementById('amt-input') : document.getElementById('income-amt');
-            const noteInput = document.getElementById('note-input');
-            const amount = parseFloat(amountInput.value);
-            if (!amount || amount <= 0) return alert("Vui lòng nhập số tiền!");
-
-            const data = {
-                id: editingId || Date.now(),
-                type: currentSelection.type,
-                category: currentSelection.category,
-                icon: currentSelection.icon,
-                amount: amount,
-                note: noteInput ? noteInput.value : '',
-                date: selectedDate.toISOString().split('T')[0]
-            };
-
-            if(editingId) {
-                const idx = transactions.findIndex(t => t.id === editingId);
-                transactions[idx] = data;
-                editingId = null;
-            } else {
-                transactions.push(data);
-            }
-
-            amountInput.value = '';
-            if(noteInput) noteInput.value = '';
-            closeQuickInput();
-            toggleIncomePopup(false);
-            updateDashboard();
-        }
-
-        function deleteTransaction(id) {
-            showConfirm(() => {
-                transactions = transactions.filter(t => t.id !== id);
-                updateDashboard();
-            });
-        }
-
-        function editTransaction(id) {
-            const t = transactions.find(item => item.id === id);
-            editingId = id;
-            selectedDate = new Date(t.date);
-            selectType(t.type, t.category, t.icon);
-            
-            if(t.type === 'expense') {
-                document.getElementById('amt-input').value = t.amount;
-                document.getElementById('note-input').value = t.note;
-            } else {
-                document.getElementById('income-amt').value = t.amount;
-                toggleIncomePopup(true);
+            } catch (error) {
+                console.error("Lỗi:", error);
+                aiChatHistory.push({ role: 'ai', content: "⚠️ Không thể kết nối với máy chủ AI. Vui lòng kiểm tra lại Backend!" });
+                renderChat();
             }
         }
 
-        function selectType(type, name, icon) {
-            currentSelection = { type, category: name, icon };
-            if(!editingId) {
-                selectedDate = new Date();
-            }
-            if (type === 'expense') {
-                document.getElementById('quick-input-box').classList.remove('hidden');
-                document.getElementById('active-icon').innerText = icon;
-            } else {
-                document.getElementById('income-grid').classList.add('hidden');
-                document.getElementById('income-input-box').classList.remove('hidden');
-                document.getElementById('selected-income-icon').innerText = icon;
-                document.getElementById('income-modal-title').innerText = "Nhập tiền: " + name;
-            }
-        }
-
-        function showAddCustom() { document.getElementById('custom-icon-popup').classList.remove('hidden'); }
-        function hideAddCustom() { document.getElementById('custom-icon-popup').classList.add('hidden'); }
-        
-        function showAddCustomInIncome() { 
-            document.getElementById('income-grid').classList.add('hidden'); 
-            document.getElementById('income-add-custom-ui').classList.remove('hidden'); 
-        }
-        
-        function resetIncomeUI() { 
-            document.getElementById('income-grid').classList.remove('hidden'); 
-            document.getElementById('income-add-custom-ui').classList.add('hidden'); 
-            document.getElementById('income-input-box').classList.add('hidden'); 
-            document.getElementById('income-modal-title').innerText = "Thêm thu nhập"; 
-            document.getElementById('new-income-name').value = '';
-        }
-        
-        function confirmAddIncome() { 
-            const name = document.getElementById('new-income-name').value; 
-            if(name) { 
-                incomeIcons.push({n: name, i: '💰'});
-                renderGrids();
-                resetIncomeUI();
-            } 
-        }
-
-        function addNewCategory() { 
-            const name = document.getElementById('new-icon-name').value; 
-            if(name) { 
-                expenseIcons.push({n: name, i: '💸'}); 
-                renderGrids(); 
-                hideAddCustom(); 
-                document.getElementById('new-icon-name').value = '';
-            } 
-        }
-
-        function closeQuickInput() { 
-            document.getElementById('quick-input-box').classList.add('hidden'); 
-            editingId = null; 
-            document.getElementById('amt-input').value = ''; 
-            document.getElementById('note-input').value = ''; 
-        }
-
-        function toggleIncomePopup(show) { 
-            document.getElementById('income-popup').classList.toggle('hidden', !show); 
-            if(show) resetIncomeUI(); 
+        function renderChat() {
+            const area = document.getElementById('ai-chat-area');
+            area.innerHTML = aiChatHistory.map(msg => `
+                <div class="${msg.role === 'user' ? 'text-right text-blue-400' : 'text-left text-slate-300'} mb-2">
+                    ${msg.content}
+                </div>
+            `).join('');
+            area.scrollTop = area.scrollHeight;
         }
 
         function renderChart(data) {
             const ctx = document.getElementById('staticPieChart').getContext('2d');
             if (myChart) myChart.destroy();
-
-            const labels = Object.keys(data);
             const values = Object.values(data);
             const total = values.reduce((a, b) => a + b, 0);
-
             myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: labels.length ? labels : ['Trống'],
+                    labels: Object.keys(data).length ? Object.keys(data) : ['Trống'],
                     datasets: [{
                         data: values.length ? values : [1],
                         backgroundColor: ['#3b82f6', '#10b981', '#f43f5e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'],
-                        borderWidth: 0,
-                        hoverOffset: 12
+                        borderWidth: 0
                     }]
                 },
                 options: { 
-                    maintainAspectRatio: false, 
-                    cutout: '75%', 
+                    maintainAspectRatio: false, cutout: '75%',
                     plugins: { 
-                        legend: { 
-                            display: true, 
-                            position: 'bottom',
-                            labels: {
-                                color: '#94a3b8',
-                                font: {
-                                    size: 10,
-                                    family: "'Plus Jakarta Sans', sans-serif"
-                                },
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            titleFont: { size: 12, weight: 'bold' },
-                            bodyFont: { size: 11 },
-                            padding: 12,
-                            cornerRadius: 12,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    if (total === 0) return ' Không có dữ liệu';
-                                    let value = context.raw;
-                                    let percentage = ((value / total) * 100).toFixed(1) + "%";
-                                    return ` ${context.label}: ${value.toLocaleString()} đ (${percentage})`;
-                                }
-                            }
-                        }
+                        legend: { display: true, position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, usePointStyle: true, padding: 15 } },
+                        tooltip: { callbacks: { label: function(c) { if (total === 0) return ' Trống'; let val = c.raw; let percent = ((val / total) * 100).toFixed(1) + "%"; return ` ${c.label}: ${val.toLocaleString()} đ (${percent})`; } } }
                     } 
                 }
             });
         }
 
-        function updateAIHint(income, expense) {
-            const ratio = income > 0 ? (expense/income*100).toFixed(0) : 0;
-            document.getElementById('ai-chat-area').innerText = ratio > 80 ? `"Cảnh báo: Bạn đã tiêu hết ${ratio}% thu nhập. Cắt giảm nhé!"` : `"Tuyệt vời! Bạn chỉ mới tiêu ${ratio}% thu nhập. Rất khoa học!"`;
+        function confirmAddIncome() { const name = document.getElementById('new-income-name').value; if(name) { incomeIcons.push({n: name, i: '💰'}); renderGrids(); resetIncomeUI(); } }
+        function addNewCategory() { const name = document.getElementById('new-icon-name').value; if(name) { expenseIcons.push({n: name, i: '💸'}); renderGrids(); hideAddCustom(); } }
+        
+        function selectType(type, name, icon) { 
+            currentSelection = { type, category: name, icon }; 
+            if (type === 'expense') { 
+                document.getElementById('quick-input-box').classList.remove('hidden'); 
+                document.getElementById('active-icon').innerText = icon; 
+            } else { 
+                document.getElementById('income-grid').classList.add('hidden'); 
+                document.getElementById('income-input-box').classList.remove('hidden'); 
+                document.getElementById('selected-income-icon').innerText = icon; 
+            } 
         }
 
-        async function handleAIChat() {
-            const input = document.getElementById('ai-input');
-            const chatArea = document.getElementById('ai-chat-area');
-            const message = input.value;
-            if (!message) return;
-
-            // 1. Hiện tin nhắn của Thiện lên màn hình
-            chatArea.innerHTML += `<div class="mt-2 text-blue-400 text-right">Bạn: ${message}</div>`;
-            input.value = '';
-            chatArea.scrollTop = chatArea.scrollHeight; // Cuộn xuống dưới
-
-            try {
-                // 2. Gửi tin nhắn sang Backend Python (Cổng 8000)
-                const res = await axios.post("http://127.0.0.1:8000/api/chatbot/chat", { 
-                    tin_nhan: message 
-                });
-
-                // 3. Hiển thị câu trả lời của AI
-                const aiReply = res.data.phan_hoi || "Đã xử lý xong giao dịch của bạn!";
-                chatArea.innerHTML += `<div class="mt-2 text-emerald-400 italic">🤖: ${aiReply}</div>`;        
-                // 4. Nếu AI bóc tách thành công, gọi hàm cập nhật lại Dashboard (Hàm có sẵn của cậu)
-                updateDashboard(); 
-                
-            } catch (error) {
-                console.error(error);
-                chatArea.innerHTML += `<div class="mt-2 text-rose-500 text-[10px]">⚠️ Lỗi: Không kết nối được Backend!</div>`;
-            }
+        async function handleSaveTransaction() {
+            const isExp = currentSelection.type === 'expense';
+            const inp = isExp ? document.getElementById('amt-input') : document.getElementById('income-amt');
+            const noteInp = isExp ? document.getElementById('note-input') : {value: ''};
+            const amount = parseFloat(inp.value);
             
-            // Tự động cuộn xuống tin nhắn mới nhất
-            chatArea.scrollTop = chatArea.scrollHeight;
+            if (!amount) return alert("Nhập số tiền!");
+            
+            const newTx = { 
+                id: Date.now(), 
+                type: currentSelection.type, 
+                category: currentSelection.category, 
+                icon: currentSelection.icon, 
+                amount: amount, 
+                note: noteInp.value, 
+                date: new Date().toISOString().split('T')[0] 
+            };
+
+            transactions.push(newTx);
+            
+            // Gửi lên backend (Optional - tùy thuộc backend của bạn có API /add không)
+            try { await axios.post("http://127.0.0.1:8000/api/transactions", newTx); } catch(e) { console.log("Gửi backend thất bại, nhưng đã lưu local"); }
+
+            inp.value = ''; 
+            if(isExp) noteInp.value = '';
+            closeQuickInput(); 
+            resetIncomeUI();
+            toggleIncomePopup(false); 
+            updateDashboard();
         }
 
-        window.onload = () => {
-            updateHeaderText();
-            renderGrids();
-            updateDashboard();
-        };
+        function toggleHeaderCalendar() { document.getElementById('header-cal-popup').classList.toggle('hidden'); renderHeaderMonths(); }
+        function renderHeaderMonths() {
+            document.getElementById('cal-pop-year').innerText = globalViewDate.getFullYear();
+            const container = document.getElementById('header-month-grid'); container.innerHTML = '';
+            ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'].forEach((m, i) => {
+                const btn = document.createElement('button');
+                btn.className = `py-2 text-[10px] rounded-lg ${globalViewDate.getMonth() === i ? 'bg-blue-600 text-white' : 'bg-white/5'}`;
+                btn.innerText = m; btn.onclick = () => { globalViewDate.setMonth(i); updateDashboard(); updateHeaderText(); document.getElementById('header-cal-popup').classList.add('hidden'); };
+                container.appendChild(btn);
+            });
+        }
+        function navMonth(dir) { globalViewDate.setMonth(globalViewDate.getMonth() + dir); updateDashboard(); updateHeaderText(); }
+        function updateHeaderText() { document.getElementById('header-month').innerText = "Tháng " + String(globalViewDate.getMonth() + 1).padStart(2, '0'); document.getElementById('header-year').innerText = globalViewDate.getFullYear(); }
+        
+        async function deleteTransaction(id) { 
+            showConfirm(async () => { 
+                transactions = transactions.filter(t => t.id !== id); 
+                updateDashboard(); 
+                // Xóa trên backend nếu cần
+                try { await axios.delete(`http://127.0.0.1:8000/api/transactions/${id}`); } catch(e) {}
+            }); 
+        }
+
+        function editTransaction(id) { const t = transactions.find(i => i.id === id); editingId = id; selectType(t.type, t.category, t.icon); if(t.type === 'expense') document.getElementById('amt-input').value = t.amount; else { document.getElementById('income-amt').value = t.amount; toggleIncomePopup(true); } }
+        function closeQuickInput() { document.getElementById('quick-input-box').classList.add('hidden'); editingId = null; }
+        function hideAddCustom() { document.getElementById('custom-icon-popup').classList.add('hidden'); }
+        function showAddCustom() { document.getElementById('custom-icon-popup').classList.remove('hidden'); }
+        function showAddCustomInIncome() { document.getElementById('income-grid').classList.add('hidden'); document.getElementById('income-add-custom-ui').classList.remove('hidden'); }
+        function resetIncomeUI() { document.getElementById('income-grid').classList.remove('hidden'); document.getElementById('income-add-custom-ui').classList.add('hidden'); document.getElementById('income-input-box').classList.add('hidden'); }
+        function toggleIncomePopup(show) { document.getElementById('income-popup').classList.toggle('hidden', !show); if(show) resetIncomeUI(); }
+
+        function updateAIHint(i, e) { 
+            if (i <= 0) return;
+            const r = (e/i*100);
+            const content = r > 100 ? `⚠️ Nguy hiểm: Chi tiêu vượt quá thu nhập (${r.toFixed(0)}%)!` : r > 80 ? `⚠️ Cảnh báo: Tiêu gần hết thu nhập (${r.toFixed(0)}%)!` : `📊 Tốt! Bạn mới tiêu ${r.toFixed(0)}% thu nhập.`;
+            if (aiChatHistory.length === 0 || aiChatHistory[aiChatHistory.length-1].content !== content) {
+                aiChatHistory.push({ role: 'ai', content: content });
+                localStorage.setItem('ai_chat_history', JSON.stringify(aiChatHistory));
+                renderChat();
+            }
+        }
+
+        window.onload = () => { updateHeaderText(); renderGrids(); updateDashboard(); renderChat(); };
     </script>
 </body>
 </html>

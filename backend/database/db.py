@@ -66,7 +66,7 @@ def filter_transactions(transaction_type=None, start_date=None, end_date=None):
     conn.close()
     return [dict(row) for row in rows]
 def get_total_amount(type_input):
-    conn = get_db_connection()
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT SUM(amount) FROM transactions WHERE type = ?", (type_input,))
     result = cursor.fetchone()[0]
