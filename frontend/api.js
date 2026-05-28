@@ -15,9 +15,9 @@ export const FinanceAPI = {
      */
     sendChatMessage: async (message) => {
         try {
-            const response = await apiClient.post('api/chatbot/chat', {
-    tin_nhan: message
-});
+            const response = await apiClient.post('/api/chatbot/chat', {
+                tin_nhan: message
+            });
             return response.data; // Trả về: { trang_thai, y_dinh, phan_hoi }
         } catch (error) {
             console.error("Lỗi Chatbot:", error);
@@ -31,7 +31,7 @@ export const FinanceAPI = {
      */
     getTransactions: async () => {
         try {
-            const response = await apiClient.get('/api/transactions');
+            const response = await apiClient.get('/transactions/api/transactions');
             return response.data; // Trả về danh sách mảng các giao dịch
         } catch (error) {
             console.error("Lỗi lấy lịch sử:", error);
@@ -45,7 +45,7 @@ export const FinanceAPI = {
      */
     addTransaction: async (transactionData) => {
         try {
-            const response = await apiClient.post('/api/transactions', transactionData);
+            const response = await apiClient.post('/transactions/api/add-transaction', transactionData);
             return response.data;
         } catch (error) {
             console.error("Lỗi thêm giao dịch:", error);
