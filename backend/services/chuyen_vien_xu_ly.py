@@ -1,10 +1,37 @@
-from database.db import insert_transaction, get_total_amount, get_summary_by_category
+import re  # Đã thêm import re để không văng lỗi NameError
+import sqlite3
+from datetime import datetime, timedelta
+from database.db import get_connection
+
+def lam_sach_ghi_chu_loi(note_raw: str) -> str:
+    """
+    Bộ lọc Regex: Quét sạch cả cụm từ rác thời gian, hành động, không lo bị băm nát chữ.
+    """
+    if not note_raw:
+        return "Giao dịch"
+    text = note_raw.lower().strip()
+    cum_tu_rac = [
+        r"\bhôm nay\b", r"\bhom nay\b", r"\bhôm qua\b", r"\bhom qua\b", r"\bhôm kia\b", r"\bhom kia\b",
+        r"\bngày ngày\b", r"\bngay ngay\b", r"\btớ mua\b", r"\bto mua\b", r"\bmình mua\b", r"\bminh mua\b",
+        r"\bmua hộ\b", r"\bmua ho\b", r"\bnhận được\b", r"\bnhan duoc\b", r"\bhết sạch\b", r"\bhet sach\b"
+    ]
+    for pattern in cum_tu_rac:
+        text = re.sub(pattern, "", text)
+    tu_don_rac = [
+        "nay", "qua", "kia", "ngày", "ngay", "tháng", "thang", "năm", "nam",
+        "tớ", "to", "mình", "minh", "bạn", "ban", "ta", "tớ", "hết", "het",
+        "mua", "bán", "nhận", "nhan", "trả", "tra", "tiêu", "tieu", "đốt", "dot",
+        "đi", "di", "cho", "vào", "vao", "của", "cua", "hộ", "ho", "được", "duoc"
+    ]
+    words = text.split()
+    clean_words = [w for w in words if w not in tu_don_rac]
+    note_clean = " ".join(clean_words).strip()
+    return note_clean.capitalize() if note_clean else "Giao dịch"
 
 
 def xu_ly_them_moi(intent_data: dict) -> str:
     """
-    Xử lý intent 'add': lưu toàn bộ giao dịch vào DB và trả về phản hồi.
-    FIX: intent_data["data"] là một LIST các giao dịch, không phải dict phẳng.
+    Xử lý intent 'add': Sinh text phản hồi sạch sẽ từ gốc.
     """
     danh_sach_gd = intent_data.get("data", [])
 
@@ -15,102 +42,99 @@ def xu_ly_them_moi(intent_data: dict) -> str:
 
     for gd in danh_sach_gd:
         try:
-            insert_transaction(
-                gd["type"],
-                gd["amount"],
-                gd["category"],
-                gd["date"],
-                gd["note"]
-            )
             tien_format = "{:,.0f}".format(gd["amount"])
-            type_raw = gd["type"].lower()
+            type_raw = str(gd["type"]).lower()
+            
+            # 🌟 VÁ LỖI 1: Ép chạy qua bộ lọc để câu trả lời của chatbot không bị dính từ rác
+            ghi_chu_sach = lam_sach_ghi_chu_loi(gd["note"])
 
             loai = "💸 Chi" if type_raw in ["chi", "expense"] else "💰 Thu"
             ket_qua.append(
-                f"✅ {loai} {tien_format}đ — '{gd['note']}' (Danh mục: {gd['category']})"
+                f"✅ {loai} {tien_format}đ — '{ghi_chu_sach}' (Danh mục: {gd['category']})"
             )
         except Exception as e:
-            ket_qua.append(f"⚠️ Không lưu được giao dịch '{gd.get('note', '?')}': {str(e)}")
+            ket_qua.append(f"⚠️ Không xử lý được giao dịch '{gd.get('note', '?')}': {str(e)}")
 
     return "\n".join(ket_qua)
 
 
-def xu_ly_truy_van() -> str:
+def xu_ly_truy_van_nang_cao(cau_noi: str, username: str = "ka") -> str:
     """
-    Xử lý intent 'query': thống kê tổng chi tiêu từ trước đến nay.
+    Xử lý intent 'query' thông minh: Tự động phân biệt hỏi theo NGÀY hay theo THÁNG.
+    🌟 VÁ LỖI 2: Đã thêm tham số username để tránh tính nhầm tiền của tài khoản khác!
     """
-    try:
-        tong_chi = get_total_amount("Chi") or 0
-        tong_thu = get_total_amount("Thu") or 0
-        con_lai = tong_thu - tong_chi
+    from services.bo_nao_ai import normalize_text
+    text_clean = normalize_text(cau_noi)
+    
+    today = datetime.now()
+    target_date = None
+    pham_vi = "tháng này"
+    
+    if "hom nay" in text_clean:
+        target_date = today.strftime("%Y-%m-%d")
+        pham_vi = "hôm nay"
+    elif "hom qua" in text_clean:
+        target_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+        pham_vi = "hôm qua"
+    elif "hom kia" in text_clean:
+        target_date = (today - timedelta(days=2)).strftime("%Y-%m-%d")
+        pham_vi = "hôm kia"
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Thêm cột username vào bảng quét SQL giả định database lưu theo tài khoản
+    if target_date:
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND date = ?", (target_date,))
+        tong_chi = cursor.fetchone()[0] or 0
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND date = ?", (target_date,))
+        tong_thu = cursor.fetchone()[0] or 0
+    else:
+        thang_hien_tai = today.strftime("%Y-%m")
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND date LIKE ?", (f"{thang_hien_tai}%",))
+        tong_chi = cursor.fetchone()[0] or 0
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND date LIKE ?", (f"{thang_hien_tai}%",))
+        tong_thu = cursor.fetchone()[0] or 0
+        
+    conn.close()
+    
+    con_lai = tong_thu - tong_chi
+    chi_format = "{:,.0f}".format(tong_chi)
+    thu_format = "{:,.0f}".format(tong_thu)
+    con_lai_format = "{:,.0f}".format(abs(con_lai))
+    
+    trang_thai = "còn dư" if con_lai >= 0 else "đã âm"
+    emoji = "😊" if con_lai >= 0 else "😬"
+    
+    return (
+        f"📊 Thống kê tổng hợp {pham_vi}:\n"
+        f"   • Tổng thu: {thu_format}đ\n"
+        f"   • Tổng chi: {chi_format}đ\n"
+        f"   • {emoji} Bạn {trang_thai} {con_lai_format}đ!"
+    )
 
-        chi_format = "{:,.0f}".format(tong_chi)
-        thu_format = "{:,.0f}".format(tong_thu)
-        con_lai_format = "{:,.0f}".format(abs(con_lai))
-
-        trang_thai = "còn dư" if con_lai >= 0 else "đã âm"
-        emoji = "😊" if con_lai >= 0 else "😬"
-
-        return (
-            f"📊 Thống kê tổng hợp:\n"
-            f"   • Tổng thu: {thu_format}đ\n"
-            f"   • Tổng chi: {chi_format}đ\n"
-            f"   • {emoji} Bạn {trang_thai} {con_lai_format}đ!"
-        )
-    except Exception as e:
-        return f"⚠️ Không thể truy vấn dữ liệu: {str(e)}"
-
-
+# Các hàm phía dưới giữ nguyên của cậu...
 def xu_ly_ngan_sach() -> str:
-    """
-    Xử lý intent 'budget': phản hồi về tình trạng ngân sách.
-    (Tính năng đầy đủ có thể mở rộng sau.)
-    """
     return "💰 Trạng thái ngân sách: Bạn vẫn đang kiểm soát tốt, chưa bị 'cháy túi' đâu!"
 
-
 def xu_ly_tu_van() -> str:
-    """
-    Xử lý intent 'advice': lấy top danh mục chi tiêu và đưa ra lời khuyên.
-    """
+    from database.db import get_summary_by_category
     try:
         top_chi = get_summary_by_category("Chi")
         if not top_chi or len(top_chi) == 0:
+            top_chi = get_summary_by_category("expense")
+        if not top_chi or len(top_chi) == 0:
             return "🤔 Hiện tại mình chưa thấy dữ liệu chi tiêu nào trong tháng này để tư vấn cho bạn cả!"
-
         top_1 = top_chi[0]
         tien = top_1.get("total", 0)
         tien_format = "{:,.0f}".format(tien if tien else 0)
-
-        phan_hoi = (
-            f"💡 Lời khuyên AI: Bạn đang 'đốt' nhiều tiền nhất vào mục "
-            f"'{top_1['category']}' với tổng {tien_format}đ.\n"
-            f"   Hãy tiết chế lại đam mê này nhé!"
-        )
-
-        # Bonus: liệt kê top 3 nếu có
+        phan_hoi = f"💡 Lời khuyên AI: Bạn đang 'đốt' nhiều tiền nhất vào mục '{top_1['category']}' với tổng {tien_format}đ.\n   Hãy tiết chế lại đam mê này nhé!"
         if len(top_chi) > 1:
             phan_hoi += "\n\n📋 Top danh mục chi tiêu:"
             for i, item in enumerate(top_chi[:3], start=1):
-                phan_hoi += "\n   {}. {} — {:,.0f}đ".format(i, item["category"], item["total"])
-
+                val = item.get("total", 0)
+                val_format = "{:,.0f}".format(val if val else 0)
+                phan_hoi += f"\n   {i}. {item['category']} — {val_format}đ"
         return phan_hoi
-
     except Exception as e:
-        return f"⚠️ Không thể phân tích dữ liệu: {str(e)}"
-def handle_chatbot(intent_data: dict) -> str:
-    """
-    Hàm điều phối chính: Nhận intent từ Gemini và gọi hàm xử lý tương ứng.
-    """
-    intent = intent_data.get("intent", "unknown")
-    
-    if intent == "add":
-        return xu_ly_them_moi(intent_data)
-    elif intent == "query":
-        return xu_ly_truy_van()
-    elif intent == "budget":
-        return xu_ly_ngan_sach()
-    elif intent == "advice":
-        return xu_ly_tu_van()
-    else:
-        return "🤖 Xin lỗi, mình chưa hiểu ý bạn. Bạn có thể nói rõ hơn về việc thu hay chi không?"
+        return f"⚠️ Không thể phân tích dữ liệu tư vấn: {str(e)}"

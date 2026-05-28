@@ -1,9 +1,13 @@
 import sqlite3
+import os
 from datetime import datetime
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "finance_ai.db")
+
 def get_connection():
-    conn = sqlite3.connect('finance_ai.db')
-    conn.row_factory = sqlite3.Row  # Lay du lieu dang dictionary
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     return conn
 
 # Tao bang transactions
@@ -13,6 +17,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
             type TEXT NOT NULL,         -- Thu hoac Chi
             amount REAL NOT NULL,       -- So tien
             category TEXT NOT NULL,     -- Danh mmuc (an uong,di chuyen, giai tri,mua sam...)
@@ -24,21 +29,26 @@ def init_db():
     conn.close()
 
 # Ham insert: Them giao dich moi
-def insert_transaction(type, amount, category, date, note):
+def insert_transaction(username, type, amount, category, date, note):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO transactions (type, amount, category, date, note)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (type, amount, category, date, note))
+        INSERT INTO transactions (username, type, amount, category, date, note)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (username, type, amount, category, date, note))
+    row_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    return row_id
 
 # Ham get-all: Lay toan bo lich su(sap xep moi nhat truoc)
-def get_all_transactions():
+def get_all_transactions(username):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM transactions ORDER BY date DESC, id DESC')
+    cursor.execute(
+        'SELECT * FROM transactions WHERE username = ? ORDER BY date DESC, id DESC',
+        (username,)
+    )
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
@@ -65,43 +75,89 @@ def filter_transactions(transaction_type=None, start_date=None, end_date=None):
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+# 🌟 FIX SỬA LỖI TÍNH SAI TIỀN: Giới hạn tính tổng trong tháng hiện tại (YYYY-MM)
 def get_total_amount(type_input):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type = ?", (type_input,))
+    
+    # Lấy chuỗi tháng năm hiện tại (Ví dụ: "2026-05")
+    thang_hien_tai = datetime.now().strftime("%Y-%m")
+    
+    # Chỉ tính tổng các giao dịch có ngày bắt đầu bằng tháng này
+    cursor.execute(
+        "SELECT SUM(amount) FROM transactions WHERE type = ? AND date LIKE ?", 
+        (type_input, f"{thang_hien_tai}%")
+    )
     result = cursor.fetchone()[0]
     conn.close()
     return result if result else 0
+
+# 🌟 FIX SỬA LỖI BIỂU ĐỒ: Lấy thống kê danh mục cũng giới hạn theo tháng hiện tại
 def get_summary_by_category(type_input):
     """
     Hàm lấy thống kê tổng số tiền theo từng danh mục (Dùng cho biểu đồ và tư vấn AI)
     """
-    import sqlite3
     try:
-        conn = sqlite3.connect("finance_ai.db")
-        conn.row_factory = sqlite3.Row # Dòng này quan trọng để trả về dạng dict
+        thang_hien_tai = datetime.now().strftime("%Y-%m")
+        conn = get_connection()
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Câu lệnh SQL để nhóm dữ liệu theo category và tính tổng tiền
         query = """
             SELECT category, SUM(amount) as total 
             FROM transactions 
-            WHERE type = ? 
+            WHERE type = ? AND date LIKE ?
             GROUP BY category 
             ORDER BY total DESC
         """
-        cursor.execute(query, (type_input,))
+        cursor.execute(query, (type_input, f"{thang_hien_tai}%"))
         rows = cursor.fetchall()
         
-        # Chuyển đổi dữ liệu sang dạng danh sách dễ dùng
         result = [{"category": row["category"], "total": row["total"]} for row in rows]
-        
         conn.close()
         return result
     except Exception as e:
         print(f"Lỗi database (get_summary_by_category): {e}")
         return []
+
+def clear_database_phien_ban_safari():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM transactions")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='transactions'")
+    conn.commit()
+    conn.close()
+    print("--- Đã quét sạch bách Database SQLite thật rồi nha sếp! ---")
+
+def delete_transaction(transaction_id, username):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM transactions WHERE id = ? AND username = ?",
+        (transaction_id, username)
+    )
+    deleted_count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted_count
+
+def get_dashboard_stats():
+    tong_thu = get_total_amount("Thu")
+    tong_chi = get_total_amount("Chi")
+    so_du = tong_thu - tong_chi
+    danh_muc_chi = get_summary_by_category("Chi")
+
+    return {
+        "tong_thu": tong_thu,
+        "tong_chi": tong_chi,
+        "so_du": so_du,
+        "danh_muc_chi": danh_muc_chi
+    }
 # Chay khoi tao bang khi file duoc thuc thi
-if __name__ == "__main__":
-    init_db()
-    print("Database đã được khởi tạo thành công!")
+#if __name__ == "__main__":
+    # BƯỚC 1: Cậu bỏ dấu thăng (#) ở dòng dưới này ra, rồi bấm RUN chạy file db.py để dọn rác
+    #clear_database_phien_ban_safari()
+    
+    # BƯỚC 2: Sau khi chạy xong thấy chữ quét sạch rác, cậu thêm lại dấu thăng (#) vào dòng trên là xong
+    # init_db()

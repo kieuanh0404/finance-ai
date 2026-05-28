@@ -1,17 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# 1. Import các router từ thư mục routes
+from database.db import init_db
+
 from routes.transaction import router as transaction_router
-from routes.dashboard import router as dashboard_router  # <--- THIỆN ĐÃ MỞ KHÓA Ở ĐÂY[cite: 1]
+from routes.dashboard import router as dashboard_router
+from routes.api_tro_ly_chat import router as chat_router
+from routes.auth import router as auth_router
 
 from models.transaction import TransactionRequest, TransactionResponse
-from routes.api_tro_ly_chat import router as chat_router
+
+# Khởi tạo database
+init_db()
 
 # Khởi tạo ứng dụng FastAPI
 app = FastAPI(title="Finance AI API")
-app.include_router(chat_router)
-# 2. Cấu hình CORS
+
+# Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,16 +25,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Cắm các router vào hệ thống chính
+# Cắm router
 app.include_router(transaction_router)
-app.include_router(dashboard_router) # <--- THIỆN ĐÃ MỞ KHÓA Ở ĐÂY[cite: 1]
+app.include_router(dashboard_router)
+app.include_router(chat_router)
+app.include_router(auth_router)
 
-# 4. Cổng chào mặc định
+# Cổng chào mặc định
 @app.get("/")
 def read_root():
     return {"message": "Hệ thống Backend Finance AI đã hoạt động thành công!"}
 
-# 5. Đoạn code kiểm tra model
+# API test model
 @app.post("/check-an", response_model=TransactionResponse)
 def check_an(data: TransactionRequest):
     return data
