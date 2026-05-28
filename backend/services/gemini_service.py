@@ -21,7 +21,8 @@ else:
     print("⚠️ Cảnh báo: Chưa cấu hình GEMINI_API_KEY trong file .env")
 
 
-def goi_gemini_tu_van(user_message: str, context_data=None) -> str:
+def goi_gemini_tu_van(user_message: str, context_data: dict | None = None) -> str:
+    """Gửi yêu cầu tư vấn tài chính đến Gemini AI."""
     if not client:
         return "Hệ thống AI chưa được cấu hình API Key, bạn kiểm tra lại nhé!"
 
@@ -50,6 +51,6 @@ if __name__ == "__main__":
     print("--- TEST GEMINI ---")
     ket_qua_test = goi_gemini_tu_van(
         user_message="Cho mình mẹo tiết kiệm tiền ăn uống?",
-        context_data={"thong_ke_vi": "Đang có 60,000đ"}
+        context_data={"thong_ke_vi": "Đang có 60,000đ"},
     )
     print(ket_qua_test)

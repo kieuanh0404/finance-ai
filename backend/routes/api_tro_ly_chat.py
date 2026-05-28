@@ -11,7 +11,7 @@ from services.chuyen_vien_xu_ly import (
     xu_ly_truy_van_nang_cao,
     xu_ly_ngan_sach,
     xu_ly_tu_van,
-    lam_sach_ghi_chu_loi
+    lam_sach_ghi_chu_loi,
 )
 
 try:
@@ -33,6 +33,7 @@ class TinNhanNguoiDung(BaseModel):
 
 @router.post("/chat")
 def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
+    """Xử lý tin nhắn từ người dùng qua AI"""
     cau_noi = request.tin_nhan.strip()
     username = request.username.strip() if request.username else "default_user"
 
@@ -61,7 +62,7 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
                 amount=gd["amount"],
                 category=gd["category"],
                 date=gd["date"],
-                note=ghi_chu_sach_rules
+                note=ghi_chu_sach_rules,
             )
 
             gd_copy = gd.copy()
@@ -86,7 +87,7 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
                 "trang_thai": "thanh_cong",
                 "y_dinh": "chat",
                 "phan_hoi": "Mình chưa hiểu rõ ý bạn. Bạn thử nhập kiểu: 'ăn phở 50k' hoặc 'tổng chi hôm nay bao nhiêu' nhé!",
-                "du_lieu_giao_dich": []
+                "du_lieu_giao_dich": [],
             }
 
         try:
@@ -118,7 +119,7 @@ Cấu trúc JSON bắt buộc:
 
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents=prompt
+                contents=prompt,
             )
 
             clean_json = response.text.replace("```json", "").replace("```", "").strip()
@@ -139,7 +140,7 @@ Cấu trúc JSON bắt buộc:
                     amount=gd["amount"],
                     category=gd["category"],
                     date=gd.get("date", hien_tai),
-                    note=ghi_chu_sach_gemini
+                    note=ghi_chu_sach_gemini,
                 )
 
                 gd_copy = {
@@ -149,7 +150,7 @@ Cấu trúc JSON bắt buộc:
                     "amount": gd["amount"],
                     "category": gd["category"],
                     "date": gd.get("date", hien_tai),
-                    "note": ghi_chu_sach_gemini
+                    "note": ghi_chu_sach_gemini,
                 }
 
                 du_lieu_giao_dich.append(gd_copy)
@@ -164,5 +165,5 @@ Cấu trúc JSON bắt buộc:
         "trang_thai": "thanh_cong",
         "y_dinh": y_dinh,
         "phan_hoi": phan_hoi,
-        "du_lieu_giao_dich": du_lieu_giao_dich
+        "du_lieu_giao_dich": du_lieu_giao_dich,
     }
