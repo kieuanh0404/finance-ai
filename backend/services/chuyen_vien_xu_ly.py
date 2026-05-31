@@ -62,6 +62,7 @@ def xu_ly_truy_van_nang_cao(cau_noi: str, username: str = "ka") -> str:
     """
     Xử lý intent 'query' thông minh: Tự động phân biệt hỏi theo NGÀY hay theo THÁNG.
     🌟 VÁ LỖI 2: Đã thêm tham số username để tránh tính nhầm tiền của tài khoản khác!
+    🌟 VÁ LỖI 3: TÍNH ĐÚNG SỐ DƯ TỔNG ĐỂ KHỚP VỚI GIAO DIỆN BẤT CHẤP THÊM/XÓA
     """
     from services.bo_nao_ai import normalize_text
     text_clean = normalize_text(cau_noi)
@@ -83,34 +84,44 @@ def xu_ly_truy_van_nang_cao(cau_noi: str, username: str = "ka") -> str:
     conn = get_connection()
     cursor = conn.cursor()
     
-    # Thêm cột username vào bảng quét SQL giả định database lưu theo tài khoản
+    # --- BƯỚC 1: LẤY SỐ DƯ TỔNG TÍCH LŨY (Mọi thời đại, khớp 100% với góc trái Dashboard) ---
+    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND username = ?", (username,))
+    tong_thu_all = cursor.fetchone()[0] or 0
+    
+    cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND username = ?", (username,))
+    tong_chi_all = cursor.fetchone()[0] or 0
+    
+    so_du_tong = tong_thu_all - tong_chi_all
+    
+    # --- BƯỚC 2: LẤY THỐNG KÊ RIÊNG THEO THÁNG/NGÀY ---
     if target_date:
-        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND date = ?", (target_date,))
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND date = ? AND username = ?", (target_date, username))
         tong_chi = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND date = ?", (target_date,))
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND date = ? AND username = ?", (target_date, username))
         tong_thu = cursor.fetchone()[0] or 0
     else:
         thang_hien_tai = today.strftime("%Y-%m")
-        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND date LIKE ?", (f"{thang_hien_tai}%",))
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND date LIKE ? AND username = ?", (f"{thang_hien_tai}%", username))
         tong_chi = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND date LIKE ?", (f"{thang_hien_tai}%",))
+        cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND date LIKE ? AND username = ?", (f"{thang_hien_tai}%", username))
         tong_thu = cursor.fetchone()[0] or 0
         
     conn.close()
     
-    con_lai = tong_thu - tong_chi
+    # Format số tiền chuẩn VNĐ
+    so_du_tong_format = "{:,.0f}".format(so_du_tong)
     chi_format = "{:,.0f}".format(tong_chi)
     thu_format = "{:,.0f}".format(tong_thu)
-    con_lai_format = "{:,.0f}".format(abs(con_lai))
     
-    trang_thai = "còn dư" if con_lai >= 0 else "đã âm"
-    emoji = "😊" if con_lai >= 0 else "😬"
+    trang_thai = "còn dư" if so_du_tong >= 0 else "đang âm"
+    emoji = "😊" if so_du_tong >= 0 else "😬"
     
     return (
-        f"📊 Thống kê tổng hợp {pham_vi}:\n"
-        f"   • Tổng thu: {thu_format}đ\n"
-        f"   • Tổng chi: {chi_format}đ\n"
-        f"   • {emoji} Bạn {trang_thai} {con_lai_format}đ!"
+        f"🏦 Số dư tổng (Tích lũy) của bạn {trang_thai}: {so_du_tong_format}đ {emoji}\n"
+        f"-------------------\n"
+        f"📊 Thống kê {pham_vi}:\n"
+        f"   • Thu vào: {thu_format}đ\n"
+        f"   • Chi ra: {chi_format}đ"
     )
 
 # Các hàm phía dưới giữ nguyên của cậu...
@@ -128,13 +139,13 @@ def xu_ly_tu_van() -> str:
         top_1 = top_chi[0]
         tien = top_1.get("total", 0)
         tien_format = "{:,.0f}".format(tien if tien else 0)
-        phan_hoi = f"💡 Lời khuyên AI: Bạn đang 'đốt' nhiều tiền nhất vào mục '{top_1['category']}' với tổng {tien_format}đ.\n   Hãy tiết chế lại đam mê này nhé!"
+        phan_hoi = f"💡 Lời khuyên AI: Bạn đang 'đốt' nhiều tiền nhất vào mục '{top_1['category']}' với tổng {tien_format}đ.\n   Hãy tiết chế lại đam mê này nhé!"
         if len(top_chi) > 1:
             phan_hoi += "\n\n📋 Top danh mục chi tiêu:"
             for i, item in enumerate(top_chi[:3], start=1):
                 val = item.get("total", 0)
                 val_format = "{:,.0f}".format(val if val else 0)
-                phan_hoi += f"\n   {i}. {item['category']} — {val_format}đ"
+                phan_hoi += f"\n   {i}. {item['category']} — {val_format}đ"
         return phan_hoi
     except Exception as e:
         return f"⚠️ Không thể phân tích dữ liệu tư vấn: {str(e)}"

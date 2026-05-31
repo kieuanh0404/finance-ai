@@ -189,6 +189,21 @@ class FinanceAgent:
         date_detected, clean_text_for_money = extract_and_clean_date(raw_text)
         text_no_accent = normalize_text(clean_text_for_money)
 
+        # -------------------------------------------------------------
+        # 🛡️ BẮT CÂU HỎI TƯ VẤN VÀ CHUYỂN CHO GEMINI (Sửa thành "chat")
+        # -------------------------------------------------------------
+        if "?" in raw_text:
+            return self._build_response("chat", {"raw_query": raw_text})
+
+        cac_tu_hoi = [
+            "co the", "co nen", "duoc ko", "duoc khong", 
+            "dc ko", "dc khong", "co ko", "co khong", 
+            "lam sao", "nhi", "ha", "khoang bao nhieu"
+        ]
+        if any(tu_hoi in text_no_accent for tu_hoi in cac_tu_hoi) or ("khoang" in text_no_accent and "tr" in text_no_accent.lower()):
+            return self._build_response("chat", {"raw_query": raw_text})
+        # -------------------------------------------------------------
+
         # Intent không phải thêm giao dịch
         if any(kw in text_no_accent for kw in ["tong ket", "bao cao", "xem lai thang"]):
             return self._build_response("report", {"period": "current_month"})

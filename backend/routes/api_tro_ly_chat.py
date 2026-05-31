@@ -19,9 +19,7 @@ try:
 except ImportError:
     client = None
 
-
 router = APIRouter(prefix="/api/chatbot", tags=["Trợ Lý Tài Chính AI"])
-
 
 class TinNhanNguoiDung(BaseModel):
     tin_nhan: str
@@ -29,7 +27,6 @@ class TinNhanNguoiDung(BaseModel):
     lich_su: List[Any] = []
     giao_dich: List[Any] = []
     thong_ke: Dict[str, Any] = {}
-
 
 @router.post("/chat")
 def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
@@ -45,7 +42,6 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
 
     # 2. Xử lý nghiệp vụ theo quy tắc cứng
     if y_dinh == "add":
-        # Hàm này chỉ sinh câu phản hồi, KHÔNG insert DB
         phan_hoi = xu_ly_them_moi(intent_data)
 
         data = intent_data.get("data", [])
@@ -79,7 +75,7 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
     elif y_dinh == "advice":
         phan_hoi = xu_ly_tu_van()
 
-    # 3. Fallback Gemini nếu Rules không hiểu
+    # 3. Fallback Gemini nếu Rules không hiểu hoặc là câu hỏi tư vấn (intent: chat)
     if not phan_hoi or y_dinh in ["unknown", "chat"]:
         if not client:
             return {
@@ -92,14 +88,37 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
         try:
             hien_tai = datetime.now().strftime("%Y-%m-%d")
 
+            # --- 🌟 VÁ LỖI: BẮT GEMINI ĐỌC SỐ DƯ TỔNG TÍCH LŨY TỪ DATABASE ---
+            from database.db import get_connection
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Lấy tổng thu mọi thời đại
+            cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Thu', 'income') AND username = ?", (username,))
+            tong_thu_all = cursor.fetchone()[0] or 0
+            
+            # Lấy tổng chi mọi thời đại
+            cursor.execute("SELECT SUM(amount) FROM transactions WHERE type IN ('Chi', 'expense') AND username = ?", (username,))
+            tong_chi_all = cursor.fetchone()[0] or 0
+            
+            so_du_tong = tong_thu_all - tong_chi_all
+            conn.close()
+            
+            so_du_tong_format = "{:,.0f}".format(so_du_tong)
+            # -------------------------------------------------------------
+
             prompt = f"""
 Bạn là Trợ lý Tài chính thông minh. Người dùng chat: "{cau_noi}"
 Tài khoản hiện tại: "{username}"
-Ngữ cảnh ví hiện tại: {request.thong_ke}
+
+[THÔNG TIN MẬT TỪ DATABASE]:
+💰 Số dư tổng (Tích lũy mọi thời đại) của người dùng HIỆN TẠI LÀ: {so_du_tong_format} VNĐ.
+⚠️ BẮT BUỘC: Nếu người dùng hỏi thống kê tài khoản, xin lời khuyên mua sắm, PHẢI SỬ DỤNG con số {so_du_tong_format} VNĐ này làm số dư tổng! 
+Tuyệt đối không dùng số âm của tháng này để làm số dư. (Ngữ cảnh tháng này Frontend gửi thêm để tham khảo phụ: {request.thong_ke})
 
 Nhiệm vụ:
 1. Nếu câu chat là một giao dịch tài chính, hãy bóc tách dữ liệu.
-2. Nếu không phải giao dịch, hãy trả lời tự nhiên, ngắn gọn bằng tiếng Việt.
+2. Nếu không phải giao dịch, hãy trả lời tự nhiên, ngắn gọn bằng tiếng Việt. Nếu có hỏi về tài khoản, hãy báo cáo số dư tổng {so_du_tong_format} VNĐ.
 3. Chỉ trả về CHUỖI JSON DUY NHẤT, không bọc trong ```json.
 
 Cấu trúc JSON bắt buộc:
@@ -130,7 +149,6 @@ Cấu trúc JSON bắt buộc:
                 gd = res_dict["data"]
 
                 ghi_chu_sach_gemini = lam_sach_ghi_chu_loi(gd.get("note", ""))
-
                 db_type = "Chi" if gd.get("type") == "expense" else "Thu"
 
                 real_id = db.insert_transaction(
