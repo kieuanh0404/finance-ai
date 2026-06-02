@@ -2,39 +2,41 @@ import re
 import unicodedata
 from datetime import datetime, timedelta
 from rapidfuzz import process, fuzz
+from typing import Tuple, Dict, List, Any, Optional
+
 
 # --- 1. CONFIGURATION & DICTIONARY ---
 RAW_DICTIONARY = {
     "Ăn uống": [
         "an", "uong", "tra sua", "pho", "com", "cafe", "nhau", "nuoc",
         "bun", "bua", "lau", "nuong", "snack", "banh trang", "mixue",
-        "tocotoco", "banh", "banh mi"
+        "tocotoco", "banh", "banh mi",
     ],
     "Di chuyển": [
         "xang", "grab", "xe", "taxi", "be", "bus", "gui xe", "bom", "va",
-        "do xang", "xe om", "ve tau", "bao duong"
+        "do xang", "xe om", "ve tau", "bao duong",
     ],
     "Giải trí": [
         "xem phim", "cgv", "netflix", "game", "choi", "bida", "net",
-        "nap game", "tft", "minecraft", "steam", "nap the"
+        "nap game", "tft", "minecraft", "steam", "nap the",
     ],
     "Thể thao": [
         "cau long", "thue san", "mua vot", "cang luoi", "da bong",
-        "gym", "boi", "the thao", "cuoc"
+        "gym", "boi", "the thao", "cuoc",
     ],
     "Học tập & Công việc": [
         "hoc phi", "mua sach", "in an", "photo", "khoa hoc",
-        "do an", "mua giao trinh", "github", "thi lai"
+        "do an", "mua giao trinh", "github", "thi lai",
     ],
     "Lương": [
         "luong", "thuong", "nhan", "lai", "thu nhap", "tieu vat",
         "bo me cho", "ting ting", "nhan tien", "duoc cho",
-        "co tien", "kiem duoc", "thu ve"
+        "co tien", "kiem duoc", "thu ve",
     ],
     "Mua sắm": [
         "mua sam", "ao", "quan", "giay", "shopee", "my pham",
-        "lazada", "op lung", "cap sac", "chuot", "ban phim"
-    ]
+        "lazada", "op lung", "cap sac", "chuot", "ban phim",
+    ],
 }
 
 ALL_KEYWORDS = []
@@ -47,7 +49,8 @@ for cat, kws in RAW_DICTIONARY.items():
 
 
 # --- 2. UTILS ---
-def normalize_text(text: str):
+def normalize_text(text: str) -> str:
+    """Chuẩn hóa văn bản: chuyển sang chữ thường, bỏ dấu thanh."""
     if not text:
         return ""
 
@@ -56,18 +59,18 @@ def normalize_text(text: str):
     return s2.replace("đ", "d").strip()
 
 
-def extract_and_clean_date(raw_text: str):
+def extract_and_clean_date(raw_text: str) -> Tuple[str, str]:
+    """Trích xuất và làm sạch ngày tháng từ văn bản."""
     today = datetime.now()
     date_str = today.strftime("%Y-%m-%d")
     cleaned_text = raw_text
 
     text_no_accent_for_date = normalize_text(raw_text)
 
-    # Bắt ngày dạng chữ:
-    # "ngày 25 tháng 5", "25 tháng 5", "ngày 25 tháng 5 năm 2026"
+    # Bắt ngày dạng chữ: "ngày 25 tháng 5", "25 tháng 5", "ngày 25 tháng 5 năm 2026"
     match_text_date = re.search(
         r"\b(?:ngay\s*)?(\d{1,2})\s*thang\s*(\d{1,2})(?:\s*nam\s*(\d{2,4}))?\b",
-        text_no_accent_for_date
+        text_no_accent_for_date,
     )
 
     if match_text_date:
@@ -83,21 +86,19 @@ def extract_and_clean_date(raw_text: str):
             date_obj = datetime(year, month, day)
             date_str = date_obj.strftime("%Y-%m-%d")
 
-            # Xóa cụm ngày khỏi câu gốc, bao gồm cả dạng thiếu chữ "ngày":
-            # "25 tháng 5 mua nước 10000" -> "mua nước 10000"
+            # Xóa cụm ngày khỏi câu gốc
             cleaned_text = re.sub(
                 r"\b(?:ngày|ngay)?\s*\d{1,2}\s*(?:tháng|thang)\s*\d{1,2}(?:\s*(?:năm|nam)\s*\d{2,4})?\b",
                 " ",
                 raw_text,
-                flags=re.IGNORECASE
+                flags=re.IGNORECASE,
             )
 
             return date_str, cleaned_text.strip()
         except ValueError:
             pass
 
-    # Bắt ngày dạng số:
-    # 19/05, 19/05/2026, 19-05-2026
+    # Bắt ngày dạng số: 19/05, 19/05/2026, 19-05-2026
     date_pattern = r"\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b"
     match_date = re.search(date_pattern, raw_text)
 
@@ -132,7 +133,8 @@ def extract_and_clean_date(raw_text: str):
     return date_str, cleaned_text.strip()
 
 
-def parse_amount(amount_str: str, suffix: str):
+def parse_amount(amount_str: str, suffix: str) -> float:
+    """Phân tích số tiền và hậu tố (k, m, vnd, etc.)."""
     suffix = (suffix or "").lower()
 
     if suffix in ["k", "nghin", "ngan", "m", "trieu", "tr"]:
@@ -150,11 +152,14 @@ def parse_amount(amount_str: str, suffix: str):
 
 # --- 3. FINANCE AGENT ---
 class FinanceAgent:
-    def __init__(self):
+    """Agent phân tích ý định và bóc tách giao dịch tài chính."""
+
+    def __init__(self) -> None:
         self.threshold = 75
         self.base_confidence = 0.5
 
-    def _fuzzy_classify(self, note_clean: str):
+    def _fuzzy_classify(self, note_clean: str) -> Tuple[str, str, Optional[str], float]:
+        """Phân loại danh mục sử dụng fuzzy matching."""
         note_no_accent = normalize_text(note_clean)
 
         if not note_no_accent or note_no_accent == "giao dich":
@@ -170,7 +175,7 @@ class FinanceAgent:
         match = process.extractOne(
             note_no_accent,
             ALL_KEYWORDS,
-            scorer=fuzz.partial_ratio
+            scorer=fuzz.partial_ratio,
         )
 
         if match and match[1] >= self.threshold:
@@ -181,11 +186,13 @@ class FinanceAgent:
 
         return "Khác", "Chi", None, 0.5
 
-    def _clean_note(self, note: str):
+    def _clean_note(self, note: str) -> str:
+        """Làm sạch ghi chú: loại bỏ ký tự đặc biệt và khoảng trắng thừa."""
         note = re.sub(r"^[,\.\-\s/]+|[,\.\-\s/]+$", "", note)
         return re.sub(r"\s+", " ", note).strip()
 
-    def parse(self, raw_text: str):
+    def parse(self, raw_text: str) -> Dict[str, Any]:
+        """Hàm chính để phân tích văn bản đầu vào."""
         date_detected, clean_text_for_money = extract_and_clean_date(raw_text)
         text_no_accent = normalize_text(clean_text_for_money)
 
@@ -199,11 +206,11 @@ class FinanceAgent:
         if any(kw in text_no_accent for kw in ["han muc", "ngan sach", "chay tui"]):
             return self._build_response("budget", {"raw_query": raw_text})
 
-        if any(kw in text_no_accent for kw in ["loi khuyen", "tu van", "tiet kiem"]):
+        if any(kw in text_no_accent for kw in [ "loi khuyen", "tu van", "tiet kiem", "co nen", "nen mua", "co nen mua",
+    "nen khong", "duoc khong", "co duoc khong"]):
             return self._build_response("advice", {"raw_query": raw_text})
 
         # Bóc tách số tiền
-        # Quan trọng: đây là regex tiền, không phải regex ngày tháng
         pattern = r"\b(\d+(?:[\.,]\d+)?)\s*(k|nghin|ngan|m|trieu|tr|d|vnd)?\b"
         matches = list(re.finditer(pattern, clean_text_for_money, re.IGNORECASE))
 
@@ -214,7 +221,7 @@ class FinanceAgent:
                 pattern,
                 "",
                 clean_text_for_money,
-                flags=re.IGNORECASE
+                flags=re.IGNORECASE,
             ).strip()
             base_note = self._clean_note(base_note)
 
@@ -251,9 +258,9 @@ class FinanceAgent:
                     "date": date_detected,
                     "entities": {
                         "keyword": kw,
-                        "amount_raw": match.group(0)
+                        "amount_raw": match.group(0),
                     },
-                    "confidence": min(conf + (fuzzy_score * 0.2), 1.0)
+                    "confidence": min(conf + (fuzzy_score * 0.2), 1.0),
                 })
 
                 last_end = end
@@ -261,22 +268,24 @@ class FinanceAgent:
             return self._build_response("add", transactions)
 
         return self._build_response("chat", {
-            "message": "Chuyển giao quyền lực cho Gemini"
+            "message": "Chuyển giao quyền lực cho Gemini",
         })
 
-    def _build_response(self, intent, data):
+    def _build_response(self, intent: str, data: Dict[str, Any] | List[Any]) -> Dict[str, Any]:
+        """Xây dựng cấu trúc phản hồi chuẩn."""
         return {
             "intent": intent,
             "data": data,
             "meta": {
                 "timestamp": datetime.now().isoformat(),
                 "agent_version": "2.6-date-text-fixed",
-                "status": "success"
-            }
+                "status": "success",
+            },
         }
 
 
-def phan_tich_y_dinh(cau_noi):
+def phan_tich_y_dinh(cau_noi: str) -> Dict[str, Any]:
+    """Hàm wrapper để khởi tạo agent và phân tích ý định."""
     agent = FinanceAgent()
     return agent.parse(cau_noi)
 
