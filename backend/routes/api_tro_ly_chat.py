@@ -11,11 +11,11 @@ from services.chuyen_vien_xu_ly import (
     xu_ly_truy_van_nang_cao,
     xu_ly_ngan_sach,
     xu_ly_tu_van,
-    lam_sach_ghi_chu_loi
+    lam_sach_ghi_chu_loi,
 )
 
 try:
-    from services.gemini_service import client
+    from services.groq_service import client
 except ImportError:
     client = None
 
@@ -36,16 +36,13 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
     cau_noi = request.tin_nhan.strip()
     username = request.username.strip() if request.username else "default_user"
 
-    # 1. Gọi bộ lọc phân loại ý định bằng Rules/Regex
     intent_data = phan_tich_y_dinh(cau_noi)
     y_dinh = intent_data.get("intent", "unknown")
 
     phan_hoi = ""
     du_lieu_giao_dich = []
 
-    # 2. Xử lý nghiệp vụ theo quy tắc cứng
     if y_dinh == "add":
-        # Hàm này chỉ sinh câu phản hồi, KHÔNG insert DB
         phan_hoi = xu_ly_them_moi(intent_data)
 
         data = intent_data.get("data", [])
@@ -61,7 +58,7 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
                 amount=gd["amount"],
                 category=gd["category"],
                 date=gd["date"],
-                note=ghi_chu_sach_rules
+                note=ghi_chu_sach_rules,
             )
 
             gd_copy = gd.copy()
@@ -77,16 +74,15 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
         phan_hoi = xu_ly_ngan_sach()
 
     elif y_dinh == "advice":
-        phan_hoi = xu_ly_tu_van()
+        phan_hoi = xu_ly_tu_van(username=username)
 
-    # 3. Fallback Gemini nếu Rules không hiểu
     if not phan_hoi or y_dinh in ["unknown", "chat"]:
         if not client:
             return {
                 "trang_thai": "thanh_cong",
                 "y_dinh": "chat",
                 "phan_hoi": "Mình chưa hiểu rõ ý bạn. Bạn thử nhập kiểu: 'ăn phở 50k' hoặc 'tổng chi hôm nay bao nhiêu' nhé!",
-                "du_lieu_giao_dich": []
+                "du_lieu_giao_dich": [],
             }
 
         try:
@@ -101,6 +97,7 @@ Nhiệm vụ:
 1. Nếu câu chat là một giao dịch tài chính, hãy bóc tách dữ liệu.
 2. Nếu không phải giao dịch, hãy trả lời tự nhiên, ngắn gọn bằng tiếng Việt.
 3. Chỉ trả về CHUỖI JSON DUY NHẤT, không bọc trong ```json.
+4. Nếu không phải giao dịch thì "is_transaction" là false và "data" là null.
 
 Cấu trúc JSON bắt buộc:
 {{
@@ -108,7 +105,7 @@ Cấu trúc JSON bắt buộc:
     "is_transaction": true hoặc false,
     "data": {{
         "amount": số tiền dạng số,
-        "category": "Ăn uống hoặc Di chuyển hoặc Giải trí hoặc Thể thao hoặc Học tập & Công việc hoặc Lương hoặc Mua sắm",
+        "category": "Ăn uống hoặc Di chuyển hoặc Giải trí hoặc Thể thao hoặc Học tập & Công việc hoặc Lương hoặc Mua sắm hoặc Khác",
         "type": "expense hoặc income",
         "date": "{hien_tai}",
         "note": "ghi chú khoản tiền"
@@ -116,12 +113,17 @@ Cấu trúc JSON bắt buộc:
 }}
 """
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2,
             )
 
-            clean_json = response.text.replace("```json", "").replace("```", "").strip()
+            clean_json = response.choices[0].message.content
+            clean_json = clean_json.replace("```json", "").replace("```", "").strip()
+
             res_dict = json.loads(clean_json)
 
             phan_hoi = res_dict.get("phan_hoi", "")
@@ -129,7 +131,7 @@ Cấu trúc JSON bắt buộc:
             if res_dict.get("is_transaction") and res_dict.get("data"):
                 gd = res_dict["data"]
 
-                ghi_chu_sach_gemini = lam_sach_ghi_chu_loi(gd.get("note", ""))
+                ghi_chu_sach_groq = lam_sach_ghi_chu_loi(gd.get("note", ""))
 
                 db_type = "Chi" if gd.get("type") == "expense" else "Thu"
 
@@ -139,7 +141,7 @@ Cấu trúc JSON bắt buộc:
                     amount=gd["amount"],
                     category=gd["category"],
                     date=gd.get("date", hien_tai),
-                    note=ghi_chu_sach_gemini
+                    note=ghi_chu_sach_groq,
                 )
 
                 gd_copy = {
@@ -149,14 +151,14 @@ Cấu trúc JSON bắt buộc:
                     "amount": gd["amount"],
                     "category": gd["category"],
                     "date": gd.get("date", hien_tai),
-                    "note": ghi_chu_sach_gemini
+                    "note": ghi_chu_sach_groq,
                 }
 
                 du_lieu_giao_dich.append(gd_copy)
                 y_dinh = "add"
 
         except Exception as e:
-            print(f"❌ Lỗi luồng Gemini Router: {str(e)}")
+            print(f"❌ Lỗi luồng Groq Router: {str(e)}")
             phan_hoi = "Mình đang suy nghĩ một chút, bạn thử lại câu khác nhé! 😅"
             y_dinh = "unknown"
 
@@ -164,5 +166,5 @@ Cấu trúc JSON bắt buộc:
         "trang_thai": "thanh_cong",
         "y_dinh": y_dinh,
         "phan_hoi": phan_hoi,
-        "du_lieu_giao_dich": du_lieu_giao_dich
+        "du_lieu_giao_dich": du_lieu_giao_dich,
     }

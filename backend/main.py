@@ -31,12 +31,14 @@ app.include_router(dashboard_router)
 app.include_router(chat_router)
 app.include_router(auth_router)
 
-# Cổng chào mặc định
+
 @app.get("/")
 def read_root():
+    """Điểm khởi động mặc định của API."""
     return {"message": "Hệ thống Backend Finance AI đã hoạt động thành công!"}
 
-# API test model
+
 @app.post("/check-an", response_model=TransactionResponse)
 def check_an(data: TransactionRequest):
+    """API test model."""
     return data

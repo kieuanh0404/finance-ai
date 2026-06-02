@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
+
 class TransactionRequest(BaseModel):
     username: str
     type: str
@@ -8,6 +9,7 @@ class TransactionRequest(BaseModel):
     category: str
     date: str
     note: Optional[str] = ""
+
 
 class TransactionResponse(BaseModel):
     id: int
@@ -17,3 +19,6 @@ class TransactionResponse(BaseModel):
     category: str
     date: str
     note: Optional[str] = ""
+
+    class Config:
+        from_attributes = True
