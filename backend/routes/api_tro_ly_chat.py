@@ -93,6 +93,8 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
 
     intent_data = phan_tich_y_dinh(cau_noi)
     y_dinh = intent_data.get("intent", "unknown")
+    print("DEBUG INTENT:", y_dinh)
+    print("DEBUG DATA:", intent_data)
 
     phan_hoi = ""
     du_lieu_giao_dich = []

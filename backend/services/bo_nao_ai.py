@@ -268,7 +268,7 @@ class FinanceAgent:
             "chi tieu nhu nao", "chi tieu the nao", "mua sam thoai mai",
             "thoai mai khong", "co nen dau tu", "nen dau tu", "dau tu vao",
             "gui tiet kiem", "so sanh", "nen chon", "cai nao tot hon",
-            "cai nao hop ly hon",
+            "cai nao hop ly hon", "nhu nao", "the nao", "chinh sach", "tiet kiem nhu nao", "lam sao de mua"
         ]
 
         if any(pattern_kw in text_no_accent for pattern_kw in groq_advice_patterns):
@@ -294,14 +294,11 @@ class FinanceAgent:
                 note_text = self._clean_note(note_text)
                 words = note_text.split()
                 clean_words = []
-
                 for w in words:
                     w_no_accent = normalize_text(w)
                     if w_no_accent not in garbage_words:
                         clean_words.append(w)
-
-                result = " ".join(clean_words).strip()
-                return result
+                return " ".join(clean_words).strip()
 
             for i, match in enumerate(matches):
                 amount_str = match.group(1)
@@ -313,53 +310,74 @@ class FinanceAgent:
                     continue
 
                 start, end = match.span()
-
                 next_start = matches[i + 1].start() if i + 1 < len(matches) else len(clean_text_for_money)
                 prev_end = matches[i - 1].end() if i > 0 else 0
 
-                note_after = clean_text_for_money[end:next_start]
-                note_before = clean_text_for_money[prev_end:start]
+                # Bốc chuỗi thô giữa các khoảng tiền
+                note_after_raw = clean_text_for_money[end:next_start]
+                note_before_raw = clean_text_for_money[prev_end:start]
 
-                before_clean = normalize_text(note_before)
+                if "," in note_after_raw:
+                    note_after_raw = note_after_raw.split(",")[0]
+                if " và " in note_after_raw:
+                    note_after_raw = note_after_raw.split(" và ")[0]
+
+                if "," in note_before_raw:
+                    note_before_raw = note_before_raw.split(",")[-1]
+                if " và " in note_before_raw:
+                    note_before_raw = note_before_raw.split(" và ")[-1]
+
+                before_clean = normalize_text(note_before_raw)
+                after_clean = normalize_text(note_after_raw)
 
                 income_keywords = [
-                    "lam them", "di lam", "duoc", "nhan", "nhan duoc",
-                    "luong", "thuong", "thu nhap", "kiem duoc",
-                    "co tien", "bo me cho", "me cho", "ba cho",
-                    "duoc cho", "tien luong", "tien cong",
-                ]
-
-                expense_keywords = [
-                    "mua", "an", "uong", "tra", "chi",
-                    "tieu", "het", "mat",
+                    "lam them", "di lam", "duoc", "thu", "thu tien", "thu duoc",
+                    "thu nhap", "nhan", "nhan duoc", "luong", "thuong", "duoc thuong",
+                    "kiem duoc", "co tien", "bo me cho", "me cho", "ba cho", "duoc cho",
+                    "tien luong", "tien cong", "tien thuong", "freelance", "part time", "lam viec"
                 ]
 
                 before_has_income = any(kw_income in before_clean for kw_income in income_keywords)
-                before_has_expense = any(kw_expense in before_clean for kw_expense in expense_keywords)
+                after_has_income = any(kw_income in after_clean for kw_income in income_keywords)
 
-                if before_has_income and not before_has_expense:
-                    note = clean_money_note(note_before)
-                    if not note:
-                        note = "Làm thêm"
+                if "thu cung" in before_clean or "thu cung" in after_clean:
+                    before_has_income = False
+                    after_has_income = False
 
+                if before_has_income:
+                    note = clean_money_note(note_before_raw)
+                    if not note: note = "Thu nhập"
+                    cat = "Lương"
+                    t_type = "Thu"
+                    kw = "thu nhap"
+                    fuzzy_score = 1.0
+                elif after_has_income:
+                    note = clean_money_note(note_after_raw)
+                    if not note: note = "Thu nhập"
                     cat = "Lương"
                     t_type = "Thu"
                     kw = "thu nhap"
                     fuzzy_score = 1.0
                 else:
-                    note = clean_money_note(note_after)
+                    note_before_clean = clean_money_note(note_before_raw)
+                    note_after_clean = clean_money_note(note_after_raw)
 
-                    if not note:
-                        note = clean_money_note(note_before)
+                    if note_after_clean and not note_before_clean:
+                        note = note_after_clean
+                    elif note_before_clean:
+                        note = note_before_clean
+                    else:
+                        note = note_after_clean
 
-                    if not note:
-                        note = "Giao dịch"
-
+                    if not note: note = "Giao dịch"
+                    
+                    # Gọi hàm phân loại để đoán danh mục
                     cat, t_type, kw, fuzzy_score = self._fuzzy_classify(note)
+                    if cat == "Lương": 
+                        t_type = "Thu"
 
                 conf = self.base_confidence + (0.2 if kw else 0) + (0.1 if amount > 0 else 0)
-                conf = self.base_confidence + (0.2 if kw else 0) + (0.1 if amount > 0 else 0)
-
+                
                 transactions.append({
                     "amount": amount,
                     "category": cat,
@@ -374,7 +392,16 @@ class FinanceAgent:
                 })
 
             return self._build_response("add", transactions)
-
+        
+        if any(kw in text_no_accent for kw in [
+            "loi khuyen",
+            "tu van",
+            "gop y",
+            "nen chi tieu",
+            "chi tieu hop ly",
+        ]):
+            return self._build_response("advice", {"raw_query": raw_text})
+        
         return self._build_response("chat", {
             "message": "Chuyển sang Groq xử lý",
         })

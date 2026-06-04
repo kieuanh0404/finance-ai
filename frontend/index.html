@@ -63,7 +63,9 @@
         margin: 0;
       }
       input[type="number"] {
+        appearance: textfield;
         -moz-appearance: textfield;
+        -webkit-appearance: none;
       }
       .modal-overlay {
         background: rgba(0, 0, 0, 0.8);
@@ -469,23 +471,25 @@
           class="flex-1 p-5 overflow-y-auto custom-scrollbar text-xs leading-relaxed text-slate-400 space-y-4 min-h-0"
         ></div>
 
-        <form
-          onsubmit="handleAIChat(event)"
+        <div
           class="p-4 bg-slate-900/50 border-t border-white/5 flex items-center gap-2 shrink-0 relative w-full"
         >
           <input
             type="text"
             id="ai-input"
             placeholder="Hỏi AI..."
+            autocomplete="off"
             class="w-full bg-slate-950 border border-white/10 rounded-xl py-3 pl-5 pr-12 text-xs outline-none text-slate-200 focus:border-blue-500"
           />
+
           <button
-            type="submit"
+            type="button"
+            onclick="handleAIChat()"
             class="absolute right-7 top-1/2 -translate-y-1/2 h-7 w-7 bg-blue-600 hover:bg-blue-500 transition-colors rounded-lg flex items-center justify-center text-white font-bold text-xs"
           >
             ➤
           </button>
-        </form>
+        </div>
       </div>
     </div>
 
@@ -831,10 +835,7 @@
         });
       }
 
-      async function handleAIChat(e) {
-        if (e && e.preventDefault) {
-          e.preventDefault();
-        }
+      async function handleAIChat() {
         const input = document.getElementById("ai-input");
         const msg = input.value.trim();
         if (!msg) return;
@@ -845,6 +846,7 @@
 
         try {
           const currentMonthTx = getCurrentMonthTransactions();
+
           const res = await axios.post(
             "http://127.0.0.1:8000/api/chatbot/chat",
             {
@@ -868,30 +870,36 @@
             const newTxs = Array.isArray(res.data.du_lieu_giao_dich)
               ? res.data.du_lieu_giao_dich
               : [res.data.du_lieu_giao_dich];
+
             newTxs.forEach((t) => {
               const frontendType =
                 t.type === "Thu" || t.type === "income" ? "income" : "expense";
-              transactions.unshift({
-                id: t.id || Date.now() + Math.random(),
-                type: frontendType,
-                category: t.category,
-                icon: frontendType === "income" ? "💰" : "💸",
-                amount: t.amount,
-                note: t.note || t.category,
-                date: t.date || new Date().toISOString().split("T")[0],
-              });
+
+              const existed = transactions.some((old) => old.id === t.id);
+
+              if (!existed) {
+                transactions.unshift({
+                  id: t.id,
+                  type: frontendType,
+                  category: t.category,
+                  icon: frontendType === "income" ? "💰" : "💸",
+                  amount: Number(t.amount),
+                  note: t.note || t.category,
+                  date: t.date || new Date().toISOString().split("T")[0],
+                });
+              }
             });
-            saveUserData();
+
             updateDashboard();
           } else if (["query", "budget", "advice"].includes(currentIntent)) {
             updateDashboard();
           }
         } catch (e) {
-          console.log("Lỗi kết nối API Chatbot");
+          console.log("Lỗi kết nối API Chatbot", e);
           aiChatHistory.push({
             role: "ai",
             content:
-              "🤖 Máy chủ AI đang bận xử lý dữ liệu, sếp thử lại câu lệnh sau giây lát nhé!",
+              "🤖 Máy chủ AI đang bận xử lý dữ liệu, bạn thử lại câu lệnh sau giây lát nhé!",
           });
           renderChat();
         }
@@ -1147,6 +1155,14 @@
         renderHeaderMonths();
         updateHeaderText();
       }
+      document
+        .getElementById("ai-input")
+        .addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleAIChat();
+          }
+        });
     </script>
   </body>
 </html>

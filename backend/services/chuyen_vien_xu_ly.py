@@ -1,6 +1,7 @@
 import re
 from datetime import datetime, timedelta
-from database.db import get_connection, get_summary_by_category
+from database.db import get_connection
+from services.groq_service import goi_groq_tu_van
 
 
 def lam_sach_ghi_chu_loi(note_raw: str) -> str:
@@ -45,6 +46,7 @@ def lam_sach_ghi_chu_loi(note_raw: str) -> str:
 
 
 def xu_ly_them_moi(intent_data: dict) -> str:
+    print("🔥 DANG CHAY HAM TU VAN MOI")
     """
     Xử lý intent 'add': sinh phản hồi xác nhận thêm giao dịch.
     Hàm này KHÔNG lưu database.
@@ -185,34 +187,166 @@ def xu_ly_ngan_sach() -> str:
 
 def xu_ly_tu_van(username: str = None) -> str:
     """
-    Xử lý intent 'advice': tư vấn dựa trên danh mục chi nhiều nhất.
-    Có thể lọc theo username nếu được truyền vào.
+    Tư vấn chi tiêu thông minh hơn:
+    - Lấy tổng thu, tổng chi, số dư trong tháng hiện tại
+    - Tìm danh mục chi nhiều nhất
+    - Đưa ra lời khuyên theo tình hình tài chính thực tế
     """
     try:
-        top_chi = get_summary_by_category("Chi", username=username)
+        today = datetime.now()
+        thang_hien_tai = today.strftime("%Y-%m")
 
-        if not top_chi or len(top_chi) == 0:
-            top_chi = get_summary_by_category("expense", username=username)
+        conn = get_connection()
+        cursor = conn.cursor()
 
-        if not top_chi or len(top_chi) == 0:
-            return "🤔 Hiện tại mình chưa thấy dữ liệu chi tiêu nào trong tháng này để tư vấn cho bạn cả!"
+        # Tổng thu tháng này
+        cursor.execute(
+            """
+            SELECT SUM(amount)
+            FROM transactions
+            WHERE username = ?
+              AND type IN ('Thu', 'income')
+              AND date LIKE ?
+            """,
+            (username, f"{thang_hien_tai}%")
+        )
+        tong_thu = cursor.fetchone()[0] or 0
 
-        top_1 = top_chi[0]
-        tien = top_1.get("total", 0)
-        tien_format = "{:,.0f}".format(tien if tien else 0)
+        # Tổng chi tháng này
+        cursor.execute(
+            """
+            SELECT SUM(amount)
+            FROM transactions
+            WHERE username = ?
+              AND type IN ('Chi', 'expense')
+              AND date LIKE ?
+            """,
+            (username, f"{thang_hien_tai}%")
+        )
+        tong_chi = cursor.fetchone()[0] or 0
+
+        # Top danh mục chi nhiều nhất
+        cursor.execute(
+            """
+            SELECT category, SUM(amount) AS total
+            FROM transactions
+            WHERE username = ?
+              AND type IN ('Chi', 'expense')
+              AND date LIKE ?
+            GROUP BY category
+            ORDER BY total DESC
+            LIMIT 3
+            """,
+            (username, f"{thang_hien_tai}%")
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        so_du = tong_thu - tong_chi
+
+        thu_format = "{:,.0f}".format(tong_thu)
+        chi_format = "{:,.0f}".format(tong_chi)
+        so_du_format = "{:,.0f}".format(abs(so_du))
+
+        if tong_thu > 0:
+            ty_le_chi = tong_chi / tong_thu
+            ty_le_tiet_kiem = max(0, so_du) / tong_thu
+        else:
+            ty_le_chi = 0
+            ty_le_tiet_kiem = 0
 
         phan_hoi = (
-            f"💡 Lời khuyên AI: Bạn đang chi nhiều nhất vào mục "
-            f"'{top_1['category']}' với tổng {tien_format}đ.\n"
-            f"   Bạn có thể cân nhắc đặt hạn mức cho danh mục này nhé!"
+            f"💡 Lời khuyên chi tiêu tháng này:\n"
+            f"• Tổng thu: {thu_format}đ\n"
+            f"• Tổng chi: {chi_format}đ\n"
         )
 
-        if len(top_chi) > 1:
-            phan_hoi += "\n\n📋 Top danh mục chi tiêu:"
-            for i, item in enumerate(top_chi[:3], start=1):
-                val = item.get("total", 0)
-                val_format = "{:,.0f}".format(val if val else 0)
-                phan_hoi += f"\n   {i}. {item['category']} — {val_format}đ"
+        if so_du >= 0:
+            phan_hoi += f"• Số dư hiện tại: {so_du_format}đ\n"
+        else:
+            phan_hoi += f"• Bạn đang âm: {so_du_format}đ\n"
+
+        if rows:
+            phan_hoi += "\n📊 Danh mục chi nhiều nhất:"
+            for i, row in enumerate(rows, start=1):
+                category = row["category"]
+                total = row["total"] or 0
+                total_format = "{:,.0f}".format(total)
+                phan_hoi += f"\n{i}. {category}: {total_format}đ"
+
+        phan_hoi += "\n\n👉 Gợi ý: "
+
+        if tong_thu == 0 and tong_chi == 0:
+            phan_hoi += (
+                "Bạn chưa có dữ liệu thu chi tháng này. Hãy nhập vài giao dịch "
+                "như 'ăn phở 50k' hoặc 'nhận lương 3 triệu' để mình tư vấn chính xác hơn."
+            )
+
+        elif tong_thu == 0 and tong_chi > 0:
+            phan_hoi += (
+                "Bạn đang có chi tiêu nhưng chưa ghi nhận khoản thu nào. "
+                "Bạn nên cập nhật thu nhập để hệ thống đánh giá tài chính chính xác hơn."
+            )
+
+        elif so_du < 0:
+            phan_hoi += (
+                "Tháng này bạn đang chi vượt thu nhập. Nên tạm dừng các khoản mua sắm không cần thiết "
+                "và ưu tiên kiểm soát các danh mục chi nhiều nhất."
+            )
+
+        elif ty_le_chi <= 0.4:
+            phan_hoi += (
+                f"Bạn đang kiểm soát chi tiêu khá tốt, mới dùng khoảng {ty_le_chi * 100:.1f}% thu nhập. "
+                f"Có thể dành khoảng {ty_le_tiet_kiem * 100:.1f}% thu nhập để tiết kiệm hoặc lập quỹ dự phòng."
+            )
+
+        elif ty_le_chi <= 0.7:
+            phan_hoi += (
+                f"Mức chi tiêu của bạn đang ở mức tương đối ổn, khoảng {ty_le_chi * 100:.1f}% thu nhập. "
+                "Bạn nên đặt hạn mức cho các danh mục chi nhiều để giữ số dư cuối tháng."
+            )
+
+        else:
+            phan_hoi += (
+                f"Bạn đã dùng khoảng {ty_le_chi * 100:.1f}% thu nhập trong tháng. "
+                "Nên giảm bớt các khoản chưa thật sự cần thiết và ưu tiên tiết kiệm trước khi mua sắm thêm."
+            )
+
+        context_data = {
+        "tong_thu_thang": tong_thu,
+        "tong_chi_thang": tong_chi,
+        "so_du": so_du,
+        "ty_le_chi": round(ty_le_chi * 100, 1),
+        "ty_le_tiet_kiem": round(ty_le_tiet_kiem * 100, 1),
+        "top_danh_muc_chi": [
+            {
+                "category": row["category"],
+                "total": row["total"] or 0
+            }
+            for row in rows
+        ],
+    }
+
+        prompt_tu_van = f"""
+        Dựa trên dữ liệu tài chính tháng này của người dùng, hãy đưa ra lời khuyên chi tiêu thực tế.
+
+        Yêu cầu:
+        - Trả lời bằng tiếng Việt tự nhiên.
+        - Tuyệt đối chỉ dùng tiếng Việt, không dùng tiếng Trung, tiếng Anh hoặc ký tự lạ.
+        - Ngắn gọn nhưng đủ ý.
+        - Nêu rõ tổng thu, tổng chi, số dư.
+        - Nhận xét danh mục chi nhiều nhất.
+        - Đưa 2-3 gợi ý hành động cụ thể.
+        - Không bịa số liệu ngoài dữ liệu được cung cấp.
+
+        Dữ liệu:
+        {context_data}
+        """
+
+        phan_hoi_groq = goi_groq_tu_van(prompt_tu_van, context_data)
+
+        if phan_hoi_groq:
+            return phan_hoi_groq
 
         return phan_hoi
 
