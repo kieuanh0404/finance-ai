@@ -1,4 +1,6 @@
 import re
+from tracemalloc import start
+from tracemalloc import start
 import unicodedata
 from datetime import datetime, timedelta
 from rapidfuzz import process, fuzz
@@ -250,45 +252,22 @@ class FinanceAgent:
         date_detected, clean_text_for_money = extract_and_clean_date(raw_text)
         text_no_accent = normalize_text(clean_text_for_money)
 
-        # 1. Báo cáo/tổng kết: rule-based xử lý
         if any(kw in text_no_accent for kw in ["tong ket", "bao cao", "xem lai thang"]):
             return self._build_response("report", {"period": "current_month"})
 
-        # 2. Truy vấn thống kê rõ ràng: rule-based xử lý
         if any(kw in text_no_accent for kw in ["bao nhieu", "tong chi", "thong ke", "het bao tien", "tong thu"]):
             return self._build_response("query", {"raw_query": raw_text})
 
-        # 3. Ngân sách cơ bản: rule-based xử lý
         if any(kw in text_no_accent for kw in ["han muc", "ngan sach", "chay tui"]):
             return self._build_response("budget", {"raw_query": raw_text})
-        
-        # 4. Nếu là câu hỏi tư vấn/quyết định thì chuyển sang Groq,
-        # KHÔNG được lưu thành giao dịch dù trong câu có số tiền.
+
         groq_advice_patterns = [
-            "co nen",
-            "co du",
-            "nen khong",
-            "nen mua",
-            "co nen mua",
-            "co dang",
-            "dang mua",
-            "hop ly khong",
-            "on khong",
-            "duoc khong",
-            "co duoc khong",
-            "nen lam gi",
-            "nen chi tieu",
-            "chi tieu nhu nao",
-            "chi tieu the nao",
-            "mua sam thoai mai",
-            "thoai mai khong",
-            "co nen dau tu",
-            "nen dau tu",
-            "dau tu vao",
-            "gui tiet kiem",
-            "so sanh",
-            "nen chon",
-            "cai nao tot hon",
+            "co nen", "co du", "nen khong", "nen mua", "co nen mua",
+            "co dang", "dang mua", "hop ly khong", "on khong",
+            "duoc khong", "co duoc khong", "nen lam gi", "nen chi tieu",
+            "chi tieu nhu nao", "chi tieu the nao", "mua sam thoai mai",
+            "thoai mai khong", "co nen dau tu", "nen dau tu", "dau tu vao",
+            "gui tiet kiem", "so sanh", "nen chon", "cai nao tot hon",
             "cai nao hop ly hon",
         ]
 
@@ -296,24 +275,35 @@ class FinanceAgent:
             return self._build_response("chat", {
                 "message": "Câu hỏi tư vấn, chuyển sang Groq xử lý",
             })
-        # 5. Bóc tách số tiền: rule-based xử lý thêm giao dịch
+
         pattern = r"\b(\d+(?:[\.,]\d+)?)\s*(k|nghin|ngan|m|trieu|tr|d|vnd)?\b"
         matches = list(re.finditer(pattern, clean_text_for_money, re.IGNORECASE))
 
         if matches:
             transactions = []
 
-            base_note = re.sub(
-                pattern,
-                "",
-                clean_text_for_money,
-                flags=re.IGNORECASE,
-            ).strip()
-            base_note = self._clean_note(base_note)
+            garbage_words = [
+                "toi", "tui", "to", "tớ", "minh", "mình",
+                "vua", "vừa", "mua", "het", "hết",
+                "chi", "tieu", "tiêu", "mat", "mất",
+                "la", "là", "cho", "de", "để",
+                "voi", "với", "va", "và",
+            ]
 
-            last_end = 0
+            def clean_money_note(note_text: str) -> str:
+                note_text = self._clean_note(note_text)
+                words = note_text.split()
+                clean_words = []
 
-            for match in matches:
+                for w in words:
+                    w_no_accent = normalize_text(w)
+                    if w_no_accent not in garbage_words:
+                        clean_words.append(w)
+
+                result = " ".join(clean_words).strip()
+                return result
+
+            for i, match in enumerate(matches):
                 amount_str = match.group(1)
                 suffix = (match.group(2) or "").lower()
 
@@ -324,17 +314,50 @@ class FinanceAgent:
 
                 start, end = match.span()
 
-                raw_note = clean_text_for_money[last_end:start].strip()
-                raw_note = self._clean_note(
-                    re.sub(pattern, "", raw_note, flags=re.IGNORECASE)
-                )
+                next_start = matches[i + 1].start() if i + 1 < len(matches) else len(clean_text_for_money)
+                prev_end = matches[i - 1].end() if i > 0 else 0
 
-                note = raw_note if (raw_note and len(raw_note) > 1) else base_note
-                if not note:
-                    note = "Giao dịch"
+                note_after = clean_text_for_money[end:next_start]
+                note_before = clean_text_for_money[prev_end:start]
 
-                cat, t_type, kw, fuzzy_score = self._fuzzy_classify(note)
+                before_clean = normalize_text(note_before)
 
+                income_keywords = [
+                    "lam them", "di lam", "duoc", "nhan", "nhan duoc",
+                    "luong", "thuong", "thu nhap", "kiem duoc",
+                    "co tien", "bo me cho", "me cho", "ba cho",
+                    "duoc cho", "tien luong", "tien cong",
+                ]
+
+                expense_keywords = [
+                    "mua", "an", "uong", "tra", "chi",
+                    "tieu", "het", "mat",
+                ]
+
+                before_has_income = any(kw_income in before_clean for kw_income in income_keywords)
+                before_has_expense = any(kw_expense in before_clean for kw_expense in expense_keywords)
+
+                if before_has_income and not before_has_expense:
+                    note = clean_money_note(note_before)
+                    if not note:
+                        note = "Làm thêm"
+
+                    cat = "Lương"
+                    t_type = "Thu"
+                    kw = "thu nhap"
+                    fuzzy_score = 1.0
+                else:
+                    note = clean_money_note(note_after)
+
+                    if not note:
+                        note = clean_money_note(note_before)
+
+                    if not note:
+                        note = "Giao dịch"
+
+                    cat, t_type, kw, fuzzy_score = self._fuzzy_classify(note)
+
+                conf = self.base_confidence + (0.2 if kw else 0) + (0.1 if amount > 0 else 0)
                 conf = self.base_confidence + (0.2 if kw else 0) + (0.1 if amount > 0 else 0)
 
                 transactions.append({
@@ -350,11 +373,8 @@ class FinanceAgent:
                     "confidence": min(conf + (fuzzy_score * 0.2), 1.0),
                 })
 
-                last_end = end
-
             return self._build_response("add", transactions)
 
-        # 6. Còn lại: chuyển cho Groq xử lý hội thoại/tư vấn tự nhiên
         return self._build_response("chat", {
             "message": "Chuyển sang Groq xử lý",
         })

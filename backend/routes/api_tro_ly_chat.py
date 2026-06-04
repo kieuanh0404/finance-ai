@@ -155,7 +155,7 @@ Ngữ cảnh ví hiện tại: {request.thong_ke}
 Nhiệm vụ:
 1. Nếu người dùng nói họ ĐÃ chi/ĐÃ nhận tiền, hãy bóc tách giao dịch.
 2. Nếu người dùng đang hỏi ý kiến như "có nên", "nên không", "hợp lý không", "mua được không", "nên", "có đủ" thì KHÔNG coi là giao dịch.
-3. Nếu không phải giao dịch, hãy trả lời tự nhiên đưa ra lời khuyên dựa trên số dư tổng, vui vẻ bằng tiếng Việt.
+3. Nếu không phải giao dịch, hãy trả lời tự nhiên đưa ra lời khuyên dựa trên số dư tổng, hài hước, ngắn gọn bằng tiếng Việt.
 4. Chỉ trả về CHUỖI JSON DUY NHẤT, không bọc trong ```json.
 5. Nếu không phải giao dịch thì "is_transaction" là false và "data" là null.
 
@@ -184,7 +184,17 @@ Cấu trúc JSON bắt buộc:
             clean_json = response.choices[0].message.content
             clean_json = clean_json.replace("```json", "").replace("```", "").strip()
 
-            res_dict = json.loads(clean_json)
+            try:
+                res_dict = json.loads(clean_json)
+            except json.JSONDecodeError:
+                phan_hoi = clean_json
+                y_dinh = "chat"
+                return {
+                    "trang_thai": "thanh_cong",
+                    "y_dinh": y_dinh,
+                    "phan_hoi": phan_hoi,
+                    "du_lieu_giao_dich": [],
+                }
 
             phan_hoi = res_dict.get("phan_hoi", "")
 
