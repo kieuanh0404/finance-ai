@@ -7,38 +7,92 @@ from typing import Tuple, Dict, List, Any, Optional
 
 # --- 1. CONFIGURATION & DICTIONARY ---
 RAW_DICTIONARY = {
-    "Ăn uống": [
-        "an", "uong", "tra sua", "pho", "com", "cafe", "nhau", "nuoc",
-        "bun", "bua", "lau", "nuong", "snack", "banh trang", "mixue",
-        "tocotoco", "banh", "banh mi",
-    ],
-    "Di chuyển": [
-        "xang", "grab", "xe", "taxi", "be", "bus", "gui xe", "bom", "va",
-        "do xang", "xe om", "ve tau", "bao duong",
-    ],
-    "Giải trí": [
-        "xem phim", "cgv", "netflix", "game", "choi", "bida", "net",
-        "nap game", "tft", "minecraft", "steam", "nap the",
-    ],
-    "Thể thao": [
-        "cau long", "thue san", "mua vot", "cang luoi", "da bong",
-        "gym", "boi", "the thao", "cuoc",
-    ],
-    "Học tập & Công việc": [
-        "hoc phi", "mua sach", "in an", "photo", "khoa hoc",
-        "do an", "mua giao trinh", "github", "thi lai",
-    ],
-    "Lương": [
-        "luong", "thuong", "nhan", "lai", "thu nhap", "tieu vat",
-        "bo me cho", "ting ting", "nhan tien", "duoc cho",
-        "co tien", "kiem duoc", "thu ve",
-    ],
-    "Mua sắm": [
-        "mua sam", "ao", "quan", "giay", "shopee", "my pham",
-        "lazada", "op lung", "cap sac", "chuot", "ban phim",
-    ],
-}
 
+    "Ăn uống": [
+        "an", "uong", "pho", "bun", "com", "chao", "mi", "hu tieu",
+        "tra sua", "cafe", "nuoc", "nuoc ngot", "banh", "banh mi",
+        "ga ran", "kfc", "lotteria", "jollibee", "do an vat", "nhau"
+    ],
+
+    "Đi lại": [
+        "xang", "do xang", "grab", "be", "taxi", "xe om",
+        "bus", "xe buyt", "gui xe", "ve tau", "ve xe",
+        "bao duong", "sua xe", "thay lop", "cau duong",
+        "di lai", "xe", "oto", "xe may", "di chuyen"
+    ],
+
+    "Mua sắm": [
+        "mua sam", "shopee", "lazada", "tiki", "ao",
+        "quan", "giay", "dep", "tui", "balo",
+        "chuot", "ban phim", "op lung", "cap sac",
+        "tai nghe", "dong ho", "may tinh", "phu kien",
+        "mua do", "shopping"
+    ],
+
+    "Giải trí": [
+        "xem phim", "cgv", "netflix", "youtube premium",
+        "spotify", "game", "choi game", "steam",
+        "nap game", "lien minh", "tft", "minecraft",
+        "bida", "karaoke", "du lich", "ca nhac",
+        "rap phim", "giai tri", "ve phim", "ve xem"
+    ],
+
+    "Giáo dục": [
+        "hoc phi", "mua sach", "giao trinh", "photo",
+        "in an", "khoa hoc", "udemy", "coursera",
+        "thi", "thi lai", "chung chi", "toeic",
+        "ielts", "lap trinh", "github", "tai lieu",
+        "hoc them", "sach", "hoc tap", "giao duc"
+    ],
+
+    "Điện thoại": [
+        "nap the", "goi cuoc", "4g", "5g", "data",
+        "viettel", "vinaphone", "mobifone", "sim",
+        "internet", "wifi", "dang ky mang",
+        "cuoc dien thoai", "sms", "nap tien",
+        "thue bao", "dien thoai", "mang", "cuoc phi", "data mobile"
+    ],
+
+    "Sức khỏe": [
+        "thuoc", "kham", "benh vien", "vien phi",
+        "nha khoa", "rang", "mat", "kham suc khoe",
+        "xet nghiem", "vitamin", "thuoc cam",
+        "thuoc ho", "bac si", "bao hiem",
+        "thuoc bo", "thuoc dau", "phong kham",
+        "suc khoe", "kham benh", "y te"
+    ],
+
+    "Làm đẹp": [
+        "son", "my pham", "spa", "cat toc",
+        "lam toc", "goi dau", "duong da",
+        "serum", "kem duong", "makeup",
+        "nuoc hoa", "mat na", "duong toc",
+        "nail", "lam mong", "tham my",
+        "lam dep", "trang diem", "duong moi", "duong mat"
+    ],
+
+    "Thú cưng": [
+        "cho", "meo", "cat", "dog",
+        "thuc an cho", "thuc an meo",
+        "thu y", "kham thu y", "tam cho",
+        "tam meo", "cat tia long", "phu kien cho",
+        "phu kien meo", "do choi thu cung",
+        "thu cung", "vaccine cho", "vaccine meo",
+        "hat", "cat ve sinh", "chuong"
+    ],
+
+    "Quà tặng": [
+        "qua", "qua tang", "tang",
+        "sinh nhat", "hoa", "gau bong",
+        "qua cho ban gai",
+        "qua cho ban trai", "qua cho me",
+        "qua cho bo", "qua cho ban",
+        "socola", "qua ky niem",
+        "qua valentine", "qua tet",
+        "qua trung thu", "qua cuoi",
+        "hoa tuoi", "qua mung"
+    ]
+}
 ALL_KEYWORDS = []
 KEYWORD_TO_CAT = {}
 
@@ -196,21 +250,53 @@ class FinanceAgent:
         date_detected, clean_text_for_money = extract_and_clean_date(raw_text)
         text_no_accent = normalize_text(clean_text_for_money)
 
-        # Intent không phải thêm giao dịch
+        # 1. Báo cáo/tổng kết: rule-based xử lý
         if any(kw in text_no_accent for kw in ["tong ket", "bao cao", "xem lai thang"]):
             return self._build_response("report", {"period": "current_month"})
 
+        # 2. Truy vấn thống kê rõ ràng: rule-based xử lý
         if any(kw in text_no_accent for kw in ["bao nhieu", "tong chi", "thong ke", "het bao tien", "tong thu"]):
             return self._build_response("query", {"raw_query": raw_text})
 
+        # 3. Ngân sách cơ bản: rule-based xử lý
         if any(kw in text_no_accent for kw in ["han muc", "ngan sach", "chay tui"]):
             return self._build_response("budget", {"raw_query": raw_text})
+        
+        # 4. Nếu là câu hỏi tư vấn/quyết định thì chuyển sang Groq,
+        # KHÔNG được lưu thành giao dịch dù trong câu có số tiền.
+        groq_advice_patterns = [
+            "co nen",
+            "co du",
+            "nen khong",
+            "nen mua",
+            "co nen mua",
+            "co dang",
+            "dang mua",
+            "hop ly khong",
+            "on khong",
+            "duoc khong",
+            "co duoc khong",
+            "nen lam gi",
+            "nen chi tieu",
+            "chi tieu nhu nao",
+            "chi tieu the nao",
+            "mua sam thoai mai",
+            "thoai mai khong",
+            "co nen dau tu",
+            "nen dau tu",
+            "dau tu vao",
+            "gui tiet kiem",
+            "so sanh",
+            "nen chon",
+            "cai nao tot hon",
+            "cai nao hop ly hon",
+        ]
 
-        if any(kw in text_no_accent for kw in [ "loi khuyen", "tu van", "tiet kiem", "co nen", "nen mua", "co nen mua",
-    "nen khong", "duoc khong", "co duoc khong"]):
-            return self._build_response("advice", {"raw_query": raw_text})
-
-        # Bóc tách số tiền
+        if any(pattern_kw in text_no_accent for pattern_kw in groq_advice_patterns):
+            return self._build_response("chat", {
+                "message": "Câu hỏi tư vấn, chuyển sang Groq xử lý",
+            })
+        # 5. Bóc tách số tiền: rule-based xử lý thêm giao dịch
         pattern = r"\b(\d+(?:[\.,]\d+)?)\s*(k|nghin|ngan|m|trieu|tr|d|vnd)?\b"
         matches = list(re.finditer(pattern, clean_text_for_money, re.IGNORECASE))
 
@@ -248,6 +334,7 @@ class FinanceAgent:
                     note = "Giao dịch"
 
                 cat, t_type, kw, fuzzy_score = self._fuzzy_classify(note)
+
                 conf = self.base_confidence + (0.2 if kw else 0) + (0.1 if amount > 0 else 0)
 
                 transactions.append({
@@ -267,8 +354,9 @@ class FinanceAgent:
 
             return self._build_response("add", transactions)
 
+        # 6. Còn lại: chuyển cho Groq xử lý hội thoại/tư vấn tự nhiên
         return self._build_response("chat", {
-            "message": "Chuyển giao quyền lực cho Gemini",
+            "message": "Chuyển sang Groq xử lý",
         })
 
     def _build_response(self, intent: str, data: Dict[str, Any] | List[Any]) -> Dict[str, Any]:
