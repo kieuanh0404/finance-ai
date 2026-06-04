@@ -31,6 +31,61 @@ class TinNhanNguoiDung(BaseModel):
     thong_ke: Dict[str, Any] = {}
 
 
+def la_cau_hoi_tu_van(cau_noi: str) -> bool:
+    """
+    Nhận diện câu hỏi xin lời khuyên/quyết định.
+    Các câu này KHÔNG được lưu thành giao dịch dù có số tiền.
+    """
+    text = cau_noi.lower()
+
+    tu_khoa_tu_van = [
+        "có nên",
+        "co nen",
+        "nên không",
+        "nen khong",
+        "nên mua",
+        "nen mua",
+        "có nên mua",
+        "co nen mua",
+        "có đáng",
+        "co dang",
+        "đáng mua",
+        "dang mua",
+        "hợp lý không",
+        "hop ly khong",
+        "ổn không",
+        "on khong",
+        "được không",
+        "duoc khong",
+        "có được không",
+        "co duoc khong",
+        "nên làm gì",
+        "nen lam gi",
+        "chi tiêu như nào",
+        "chi tieu nhu nao",
+        "chi tiêu thế nào",
+        "chi tieu the nao",
+        "mua sắm thoải mái",
+        "mua sam thoai mai",
+        "thoải mái không",
+        "thoai mai khong",
+        "đầu tư",
+        "dau tu",
+        "gửi tiết kiệm",
+        "gui tiet kiem",
+        "so sánh",
+        "so sanh",
+        "nên chọn",
+        "nen chon",
+        "cái nào tốt hơn",
+        "cai nao tot hon",
+        "cái nào hợp lý hơn",
+        "cai nao hop ly hon",
+    ]
+
+    return any(kw in text for kw in tu_khoa_tu_van)
+
+
 @router.post("/chat")
 def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
     cau_noi = request.tin_nhan.strip()
@@ -41,6 +96,10 @@ def tro_ly_ai_nhan_tin(request: TinNhanNguoiDung):
 
     phan_hoi = ""
     du_lieu_giao_dich = []
+
+    # Chặn sớm: nếu là câu hỏi tư vấn thì không cho rule-based lưu giao dịch
+    if la_cau_hoi_tu_van(cau_noi):
+        y_dinh = "chat"
 
     if y_dinh == "add":
         phan_hoi = xu_ly_them_moi(intent_data)
@@ -94,10 +153,11 @@ Tài khoản hiện tại: "{username}"
 Ngữ cảnh ví hiện tại: {request.thong_ke}
 
 Nhiệm vụ:
-1. Nếu câu chat là một giao dịch tài chính, hãy bóc tách dữ liệu.
-2. Nếu không phải giao dịch, hãy trả lời tự nhiên, ngắn gọn bằng tiếng Việt.
-3. Chỉ trả về CHUỖI JSON DUY NHẤT, không bọc trong ```json.
-4. Nếu không phải giao dịch thì "is_transaction" là false và "data" là null.
+1. Nếu người dùng nói họ ĐÃ chi/ĐÃ nhận tiền, hãy bóc tách giao dịch.
+2. Nếu người dùng đang hỏi ý kiến như "có nên", "nên không", "hợp lý không", "mua được không", "nên", "có đủ" thì KHÔNG coi là giao dịch.
+3. Nếu không phải giao dịch, hãy trả lời tự nhiên đưa ra lời khuyên dựa trên số dư tổng, vui vẻ bằng tiếng Việt.
+4. Chỉ trả về CHUỖI JSON DUY NHẤT, không bọc trong ```json.
+5. Nếu không phải giao dịch thì "is_transaction" là false và "data" là null.
 
 Cấu trúc JSON bắt buộc:
 {{
@@ -128,7 +188,13 @@ Cấu trúc JSON bắt buộc:
 
             phan_hoi = res_dict.get("phan_hoi", "")
 
-            if res_dict.get("is_transaction") and res_dict.get("data"):
+            # Chặn lần 2:
+            # Nếu là câu hỏi tư vấn thì dù Groq trả is_transaction=true cũng KHÔNG lưu DB.
+            if (
+                res_dict.get("is_transaction")
+                and res_dict.get("data")
+                and not la_cau_hoi_tu_van(cau_noi)
+            ):
                 gd = res_dict["data"]
 
                 ghi_chu_sach_groq = lam_sach_ghi_chu_loi(gd.get("note", ""))
@@ -156,6 +222,8 @@ Cấu trúc JSON bắt buộc:
 
                 du_lieu_giao_dich.append(gd_copy)
                 y_dinh = "add"
+            else:
+                y_dinh = "chat"
 
         except Exception as e:
             print(f"❌ Lỗi luồng Groq Router: {str(e)}")
